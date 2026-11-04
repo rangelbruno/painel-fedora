@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Painel do PC — Abas",
+  "version": "1.0",
+  "description": "Deixa o Painel do PC ver as abas e adormecer as que estão paradas.",
+  "permissions": ["tabs"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{
+    "matches": ["http://127.0.0.1:8765/*", "http://localhost:8765/*"],
+    "js": ["ponte.js"],
+    "run_at": "document_start"
+  }],
+  "icons": { "128": "icon.png" }
+}

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- fundo -->
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="#1a1a19"/>
+  <!-- rosca de disco: usado (azul) / livre (rosa) -->
+  <circle cx="50" cy="52" r="24" fill="none" stroke="#e87ba4" stroke-width="12"/>
+  <circle cx="50" cy="52" r="24" fill="none" stroke="#3987e5" stroke-width="12"
+          stroke-dasharray="98 151" transform="rotate(-90 50 52)"/>
+  <!-- barras de uso -->
+  <rect x="86" y="46" width="12" height="18" rx="3" fill="#eb6834"/>
+  <rect x="100" y="28" width="12" height="36" rx="3" fill="#1baf7a"/>
+  <!-- linha ao vivo -->
+  <polyline points="24,104 40,96 54,101 70,88 86,94 104,84" fill="none" stroke="#ffffff"
+            stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

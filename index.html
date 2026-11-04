@@ -1,0 +1,1849 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel do PC</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<script>
+  try { const t = localStorage.getItem("painel-tema"); if (t) document.documentElement.dataset.theme = t; } catch {}
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f4f2;
+  --surface-1: #fcfcfb;
+  --border: #e3e2de;
+  --grid: #ecebe7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #7a7974;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --disk-free: #e87ba4;
+  --series-3: #1baf7a;
+  --track: #ecebe7;
+  --cache: #9ec5f4;
+  --critical: #c62f2f;
+  --good: #0a7d32;
+  --warning: #a86d00;
+  --hover: rgba(42,120,214,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111110;
+    --surface-1: #1a1a19;
+    --border: #2c2c2a;
+    --grid: #262624;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8f8e86;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --disk-free: #d55181;
+    --series-3: #199e70;
+    --track: #2a2a28;
+    --cache: #1c5cab;
+    --critical: #f07070;
+    --good: #4cc47a;
+    --warning: #e0a83a;
+    --hover: rgba(57,135,229,.12);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111110;
+  --surface-1: #1a1a19;
+  --border: #2c2c2a;
+  --grid: #262624;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8f8e86;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --disk-free: #d55181;
+  --series-3: #199e70;
+  --track: #2a2a28;
+  --cache: #1c5cab;
+  --critical: #f07070;
+  --good: #4cc47a;
+  --warning: #e0a83a;
+  --hover: rgba(57,135,229,.12);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text-primary);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
+header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+.head-info { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.theme-btn { flex: none; background: var(--surface-1); border: 1px solid var(--border); color: var(--text-primary); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.theme-btn:hover { background: var(--hover); }
+h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+.meta { color: var(--text-secondary); font-size: 13px; }
+.meta span + span::before { content: "·"; margin: 0 8px; color: var(--text-muted); }
+h2 { font-size: 15px; margin: 0 0 2px; }
+.sub { color: var(--text-muted); font-size: 12.5px; margin: 0 0 14px; }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(12, 1fr); }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px; min-width: 0; }
+.span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; }
+.span-5 { grid-column: span 5; } .span-7 { grid-column: span 7; }
+.span-8 { grid-column: span 8; } .span-12 { grid-column: span 12; }
+@media (max-width: 900px) {
+  .span-3 { grid-column: span 6; }
+  .span-4, .span-5, .span-7, .span-8 { grid-column: span 12; }
+}
+@media (max-width: 520px) { .span-3 { grid-column: span 12; } }
+
+/* stat tiles */
+.tile .label { color: var(--text-secondary); font-size: 12.5px; display: flex; align-items: center; }
+.kv { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.kv .k { color: var(--text-secondary); }
+.kv .v { text-align: right; }
+.kv .full { grid-column: 1 / -1; margin-top: -4px; }
+.gpu-name { font-weight: 600; margin-bottom: 14px; }
+.tile .value { font-size: 30px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin: 2px 0; }
+.tile .value small { font-size: 15px; font-weight: 500; color: var(--text-secondary); }
+.tile .detail { color: var(--text-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+/* meter */
+.meter { height: 10px; background: var(--track); border-radius: 5px; overflow: hidden; display: flex; gap: 2px; margin-top: 10px; }
+.meter > i { display: block; height: 100%; border-radius: 4px; transition: width .4s ease; }
+
+/* legend */
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; color: var(--text-secondary); margin-top: 10px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+/* disks */
+.disks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 16px; }
+.disk { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 20px; padding: 16px; border: 1px solid var(--grid); border-radius: 10px; min-width: 0; }
+.donut { flex: 0 0 140px; width: 140px; height: 140px; }
+.donut path { cursor: default; transition: opacity .15s; }
+.donut.hl path:not(.on) { opacity: .35; }
+.donut .c-big { font-size: 20px; font-weight: 650; fill: var(--text-primary); font-variant-numeric: tabular-nums; }
+.donut .c-small { font-size: 11px; fill: var(--text-muted); }
+.disk-info { min-width: 0; flex: 1; }
+.disk-explain { flex-basis: 100%; border-top: 1px solid var(--grid); padding-top: 12px; font-size: 13px; color: var(--text-secondary); }
+.disk-explain b { display: block; color: var(--text-primary); font-size: 13.5px; margin-bottom: 3px; }
+.disk-explain p { margin: 0 0 6px; }
+.disk-explain .tech { color: var(--text-muted); font-size: 12px; margin: 0; }
+.disk-name { font-weight: 600; word-break: break-all; }
+.disk-dev { color: var(--text-muted); font-size: 12px; margin-bottom: 10px; overflow-wrap: anywhere; }
+.disk-leg { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.disk-leg .k { color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+.disk-leg .k i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.disk-leg .v { text-align: right; white-space: nowrap; }
+.disk-leg .v small { color: var(--text-muted); margin-left: 4px; }
+.disk-leg .cap { border-top: 1px solid var(--grid); padding-top: 6px; }
+@media (max-width: 420px) { .disk { flex-direction: column; align-items: stretch; } .donut { align-self: center; } }
+.status { font-size: 12px; font-weight: 600; margin-left: 8px; }
+.status.critical { color: var(--critical); } .status.warning { color: var(--warning); }
+
+/* line chart */
+.chart-wrap { position: relative; }
+svg { display: block; width: 100%; overflow: visible; }
+.axis text { fill: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.axis line { stroke: var(--grid); }
+.tooltip {
+  position: absolute; pointer-events: none; background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 12.5px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  opacity: 0; transition: opacity .1s; white-space: nowrap; z-index: 5; font-variant-numeric: tabular-nums;
+}
+.tooltip .t-row { display: flex; align-items: center; gap: 6px; }
+.tooltip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.tooltip b { margin-left: auto; padding-left: 12px; }
+
+/* folders */
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; font-size: 13px; flex: 1; min-width: 0; }
+.crumbs button { background: none; border: 0; color: var(--series-1); cursor: pointer; padding: 2px 4px; border-radius: 4px; font: inherit; }
+.crumbs button:hover { background: var(--hover); }
+.crumbs .sep { color: var(--text-muted); }
+.crumbs .cur { font-weight: 600; padding: 2px 4px; }
+.btn { background: var(--surface-1); border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.btn:hover { background: var(--hover); }
+input.path { flex: 1 1 220px; min-width: 0; background: var(--surface-1); border: 1px solid var(--border); color: var(--text-primary); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 13px; }
+.bars { display: grid; grid-template-columns: minmax(80px, 180px) 1fr auto auto; gap: 4px 10px; align-items: center; }
+.bar-act { text-align: right; }
+.procs { display: grid; grid-template-columns: minmax(150px, 280px) 1fr auto; column-gap: 14px; align-items: stretch; }
+.proc-row { display: contents; }
+.proc-row > * { padding: 6px 0; border-top: 1px solid var(--grid); }
+.proc-row:first-child > * { border-top: 0; }
+.proc-name { min-width: 0; }
+.proc-name b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proc-name small { color: var(--text-muted); font-size: 12px; }
+.proc-track { display: flex; align-items: center; }
+.proc-track i { display: block; height: 14px; background: var(--series-2); border-radius: 0 4px 4px 0; min-width: 2px; }
+.proc-size { display: flex; align-items: center; justify-content: flex-end; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 13px; }
+.proc-size span { color: var(--text-muted); margin-left: 6px; }
+.kind { font-size: 11.5px; font-weight: 600; }
+.kind.system { color: var(--warning); }
+.kind.app { color: var(--series-1); }
+.proc-tip { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 12px; }
+/* navegador */
+.br-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 28px; margin-top: 18px; }
+@media (max-width: 900px) { .br-cols { grid-template-columns: 1fr; } }
+.br-cols h3 { font-size: 13px; margin: 0 0 8px; color: var(--text-secondary); font-weight: 600; }
+.insights { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 8px; }
+.insights li { font-size: 13px; color: var(--text-secondary); padding: 8px 12px; border-left: 3px solid var(--series-1); background: var(--hover); border-radius: 0 8px 8px 0; }
+.insights li.warn { border-left-color: var(--warning); }
+.insights li b { color: var(--text-primary); }
+.sites { display: grid; gap: 2px; font-size: 13px; }
+.site { display: grid; grid-template-columns: 2.2em 1fr; gap: 0 8px; padding: 5px 0; border-top: 1px solid var(--grid); }
+.site:first-child { border-top: 0; }
+.site .n { font-weight: 650; font-variant-numeric: tabular-nums; text-align: right; }
+.site .d { font-weight: 600; overflow-wrap: anywhere; }
+.site .t { grid-column: 2; color: var(--text-muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.br-help { font-size: 12.5px; color: var(--text-muted); margin: 14px 0 0; }
+.br-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 16px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; }
+.br-actions .btn-main { background: var(--series-1); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.br-actions .btn-main:hover { filter: brightness(1.08); }
+.br-actions .btn-main:disabled { opacity: .55; cursor: not-allowed; }
+.br-actions label { font-size: 12.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.br-actions .st { font-size: 12.5px; color: var(--text-muted); flex: 1 1 200px; }
+.br-install { font-size: 13px; color: var(--text-secondary); flex-basis: 100%; }
+.br-install ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 3px; }
+.br-install code { overflow-wrap: anywhere; }
+.site .d .zz { font-weight: 500; color: var(--text-muted); font-size: 12px; margin-left: 6px; }
+.site { grid-template-columns: 2.2em 1fr auto; }
+.site .t { grid-column: 2 / 4; }
+.site .btn-zz { background: none; border: 1px solid var(--border); color: var(--text-secondary); border-radius: 6px; padding: 1px 8px; font: inherit; font-size: 11.5px; cursor: pointer; align-self: start; }
+.site .btn-zz:hover { background: var(--hover); color: var(--text-primary); }
+.cpu-hot { color: var(--critical); font-weight: 600; }
+kbd { font: 600 11.5px ui-monospace, monospace; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface-1); color: var(--text-primary); }
+.bar-act .btn-clean { padding: 2px 8px; font-size: 12px; }
+.bar-row { display: contents; }
+.bar-row > * { padding: 5px 0; }
+.bar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.bar-track { height: 18px; position: relative; }
+.bar-track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--series-1); border-radius: 0 4px 4px 0; min-width: 2px; }
+.bar-row.files .bar-track i { background: var(--text-muted); }
+.bar-size { font-variant-numeric: tabular-nums; color: var(--text-secondary); font-size: 13px; text-align: right; }
+.bar-row.clickable { cursor: pointer; }
+.bar-row.clickable:hover > * { background: var(--hover); }
+.bar-row.clickable .bar-name { color: var(--series-1); }
+.bar-row:focus-visible > * { outline: 2px solid var(--series-1); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; color: var(--text-muted); font-weight: 500; font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+td { padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.p { word-break: break-all; }
+td.p .dir { color: var(--text-muted); }
+.loading { color: var(--text-muted); padding: 24px 0; text-align: center; }
+.err { color: var(--critical); }
+.files-scroll { max-height: 720px; overflow: auto; }
+.why { font-size: 12px; color: var(--text-secondary); margin-top: 4px; word-break: normal; }
+.badge { font-weight: 600; margin-right: 4px; white-space: nowrap; }
+.badge.safe { color: var(--good); }
+.badge.lock { color: var(--text-muted); }
+td.act { width: 1%; white-space: nowrap; text-align: right; }
+.btn-clean { background: var(--surface-1); border: 1px solid var(--good); color: var(--good); border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.btn-clean:hover { background: var(--hover); }
+.btn-clean:disabled { opacity: .5; cursor: wait; }
+.relief { display: flex; align-items: center; gap: 8px; margin-top: 10px; min-height: 26px; }
+.relief span { color: var(--text-muted); font-size: 12px; line-height: 1.3; }
+.relief .btn-clean.on { border-color: var(--warning); color: var(--warning); }
+.clean-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 12px; margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 13px; }
+dialog { border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); color: var(--text-primary); padding: 20px; max-width: min(560px, calc(100vw - 32px)); box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+dialog::backdrop { background: rgba(0,0,0,.4); }
+dialog h3 { margin: 0 0 8px; font-size: 16px; }
+dialog ul { margin: 8px 0 12px; padding-left: 18px; font-size: 12.5px; color: var(--text-secondary); max-height: 240px; overflow: auto; word-break: break-all; }
+dialog .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.btn-danger { background: var(--critical); border: 0; color: var(--surface-1); border-radius: 8px; padding: 6px 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text-primary); color: var(--surface-1); padding: 10px 16px; border-radius: 10px; font-size: 13.5px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; max-width: calc(100vw - 32px); }
+.toast.show { opacity: 1; }
+/* Progresso da limpeza */
+.cleaning { position: fixed; right: 24px; bottom: 24px; z-index: 21; width: min(360px, calc(100vw - 32px)); background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: 0 12px 40px rgba(0,0,0,.25); opacity: 0; transform: translateY(12px) scale(.98); transition: opacity .2s ease-out, transform .3s cubic-bezier(.16,1,.3,1); pointer-events: none; }
+.cleaning.show { opacity: 1; transform: none; pointer-events: auto; }
+.cleaning-head { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; }
+.cleaning-icon { position: relative; width: 22px; height: 22px; flex: none; }
+.cleaning-icon .spin { position: absolute; inset: 0; border: 2.5px solid var(--track); border-top-color: var(--good); border-radius: 50%; animation: spin .7s linear infinite; }
+.cleaning-icon .mark { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; color: var(--surface-1); font-size: 13px; font-weight: 700; transform: scale(0); }
+.cleaning.done .spin, .cleaning.error .spin { display: none; }
+.cleaning.done .mark { background: var(--good); animation: pop .3s cubic-bezier(.16,1,.3,1) forwards; }
+.cleaning.error .mark { background: var(--warning); animation: pop .3s cubic-bezier(.16,1,.3,1) forwards; }
+.cleaning-path { font-size: 12px; color: var(--text-muted); margin: 6px 0 10px 32px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cleaning-bar { position: relative; height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.cleaning-bar .fill { position: absolute; inset: 0; background: var(--good); border-radius: 3px; transform: scaleX(0); transform-origin: left; transition: transform .4s cubic-bezier(.16,1,.3,1); }
+.cleaning-foot { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.cleaning-foot b { color: var(--good); }
+.btn-clean.is-busy { position: relative; color: transparent; }
+.btn-clean.is-busy::after { content: ""; position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border: 2px solid var(--track); border-top-color: var(--good); border-radius: 50%; animation: spin .7s linear infinite; }
+tr.is-cleaning, .bar-row.is-cleaning { animation: pulse-row 1.2s ease-in-out infinite; }
+/* programas instalados */
+.apps-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.apps-tools input { flex: 1 1 220px; }
+.apps-scroll { max-height: 640px; overflow: auto; }
+.apps-table td { vertical-align: middle; }
+.app-name b { font-weight: 600; }
+.app-name small { display: block; color: var(--text-muted); font-size: 12px; overflow-wrap: anywhere; }
+.origin { font-size: 11.5px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.origin.fedora { color: var(--warning); }
+.btn-remove { background: var(--surface-1); border: 1px solid var(--critical); color: var(--critical); border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.btn-remove:hover { background: var(--hover); }
+.btn-remove:disabled { opacity: .5; cursor: not-allowed; }
+.app-open { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.orphans { margin-bottom: 14px; }
+/* contêineres docker */
+.dk-only { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.dk-table tr.dk-group td { background: var(--bg); font-size: 12.5px; padding-top: 10px; border-bottom: 1px solid var(--border); }
+.dk-group b { font-weight: 600; color: var(--text-primary); }
+.dk-group small { color: var(--text-muted); margin-left: 8px; overflow-wrap: anywhere; }
+.dk-table td { vertical-align: middle; }
+.dk-state { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.dk-state::before { content: "●"; margin-right: 5px; }
+.dk-state.on { color: var(--good); }
+.dk-state.off { color: var(--text-muted); }
+.dk-state.bad { color: var(--critical); }
+.dk-state.warn { color: var(--warning); }
+.dk-state small { display: block; font-weight: 400; color: var(--text-muted); margin-left: 16px; white-space: normal; }
+.dk-table .app-name { min-width: 160px; }
+.dk-table .app-name b { overflow-wrap: anywhere; }
+.dk-ports { display: flex; flex-wrap: wrap; gap: 4px; }
+.dk-port { font-size: 12px; font-variant-numeric: tabular-nums; border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; color: var(--series-1); text-decoration: none; white-space: nowrap; }
+.dk-port:hover { background: var(--hover); }
+.dk-port.inner { color: var(--text-muted); border-style: dashed; }
+tr.dk-stopped .app-name b { color: var(--text-secondary); font-weight: 500; }
+.dk-acts { display: flex; gap: 6px; justify-content: flex-end; }
+.dk-acts button { padding: 3px 9px; font-size: 12px; }
+.dk-acts .btn { font-weight: 500; }
+.dk-acts button:disabled { opacity: .5; cursor: wait; }
+.dk-acts button.is-busy { position: relative; color: transparent; }
+.dk-acts button.is-busy::after { content: ""; position: absolute; left: 50%; top: 50%; width: 11px; height: 11px; margin: -6px 0 0 -6px; border: 2px solid var(--track); border-top-color: var(--text-secondary); border-radius: 50%; animation: spin .7s linear infinite; }
+.dk-cpu-hot { color: var(--warning); font-weight: 600; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes pulse-row { 50% { background: var(--hover); } }
+@media (prefers-reduced-motion: reduce) {
+  .cleaning, .cleaning-bar .fill { transition: none; }
+  .cleaning-icon .spin, .btn-clean.is-busy::after { animation-duration: 2s; }
+  tr.is-cleaning, .bar-row.is-cleaning { animation: none; }
+  .cleaning.done .mark, .cleaning.error .mark { animation: none; transform: scale(1); }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="head-info">
+      <h1 id="host">Painel do PC</h1>
+      <div class="meta" id="meta"></div>
+    </div>
+    <button class="theme-btn" id="theme-btn" type="button"></button>
+  </header>
+
+  <section class="grid" aria-label="Resumo">
+    <div class="card tile span-3">
+      <div class="label">CPU</div>
+      <div class="value" id="cpu-val">–</div>
+      <div class="detail" id="cpu-detail"></div>
+      <div class="meter"><i id="cpu-bar" style="background:var(--series-1);width:0"></i></div>
+      <div class="relief">
+        <button class="btn-clean" id="relief-btn" type="button" title="Põe os processos pesados num grupo com teto de metade da CPU e liga o modo economia. Nada é encerrado.">🧊 Aliviar CPU</button>
+        <span id="relief-info"></span>
+      </div>
+    </div>
+    <div class="card tile span-3">
+      <div class="label">Temperatura da CPU<span id="tcpu-st"></span></div>
+      <div class="value" id="tcpu-val">–</div>
+      <div class="detail" id="tcpu-detail"></div>
+      <div class="meter"><i id="tcpu-bar" style="background:var(--series-1);width:0"></i></div>
+    </div>
+    <div class="card tile span-3">
+      <div class="label">GPU</div>
+      <div class="value" id="gpu-val">–</div>
+      <div class="detail" id="gpu-detail"></div>
+      <div class="meter"><i id="gpu-bar" style="background:var(--series-3);width:0"></i></div>
+    </div>
+    <div class="card tile span-3">
+      <div class="label">Temperatura da GPU<span id="tgpu-st"></span></div>
+      <div class="value" id="tgpu-val">–</div>
+      <div class="detail" id="tgpu-detail"></div>
+      <div class="meter"><i id="tgpu-bar" style="background:var(--series-3);width:0"></i></div>
+    </div>
+    <div class="card tile span-3">
+      <div class="label">Memória em uso</div>
+      <div class="value" id="mem-val">–</div>
+      <div class="detail" id="mem-detail"></div>
+      <div class="meter"><i id="mem-bar" style="background:var(--series-2);width:0"></i></div>
+    </div>
+    <div class="card tile span-3">
+      <div class="label">Memória da GPU (VRAM)</div>
+      <div class="value" id="vram-val">–</div>
+      <div class="detail" id="vram-detail"></div>
+      <div class="meter"><i id="vram-bar" style="background:var(--series-3);width:0"></i></div>
+    </div>
+    <div class="card tile span-3">
+      <div class="label">Swap</div>
+      <div class="value" id="swap-val">–</div>
+      <div class="detail" id="swap-detail"></div>
+      <div class="meter"><i id="swap-bar" style="background:var(--text-muted);width:0"></i></div>
+    </div>
+    <div class="card tile span-3">
+      <div class="label">Ligado há</div>
+      <div class="value" id="up-val">–</div>
+      <div class="detail" id="load-detail"></div>
+    </div>
+
+    <div class="card span-8">
+      <h2>Uso ao vivo</h2>
+      <p class="sub">CPU, memória e GPU nos últimos 2 minutos, atualizado a cada 2 s</p>
+      <div class="chart-wrap">
+        <svg id="live" height="220" role="img" aria-label="Uso de CPU, memória e GPU ao longo do tempo"></svg>
+        <div class="tooltip" id="live-tip"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--series-1)"></i>CPU</span>
+        <span><i style="background:var(--series-2)"></i>Memória</span>
+        <span><i style="background:var(--series-3)"></i>GPU</span>
+      </div>
+    </div>
+
+    <div class="card span-4">
+      <h2>Composição da memória</h2>
+      <p class="sub" id="mem-total-sub"></p>
+      <div class="meter" style="height:28px;border-radius:6px" id="mem-stack"></div>
+      <div class="legend" id="mem-legend" style="flex-direction:column;gap:8px;margin-top:16px"></div>
+    </div>
+
+    <div class="card span-12">
+      <h2>Programas que mais usam memória</h2>
+      <p class="sub">Memória real de cada programa, somando todos os processos dele · atualiza a cada 5 s</p>
+      <p class="proc-tip">Para liberar memória, feche os <b>aplicativos</b> que não está usando (pelo próprio programa, para não perder nada). Itens marcados como <span class="kind system">⚙ Sistema</span> fazem o computador funcionar — não feche.</p>
+      <div id="procs"><div class="loading">Carregando…</div></div>
+    </div>
+
+    <div class="card span-12" id="browser-card" hidden>
+      <h2 id="br-title">Por dentro do navegador</h2>
+      <p class="sub" id="br-sub"></p>
+      <div class="meter" style="height:28px;border-radius:6px" id="br-stack"></div>
+      <div class="legend" id="br-legend"></div>
+      <ul class="insights" id="br-insights"></ul>
+      <div class="br-actions" id="br-actions">
+        <button class="btn-main" id="br-sleep" type="button" disabled>😴 Adormecer abas paradas</button>
+        <label><input type="checkbox" id="br-pinned"> incluir abas fixadas</label>
+        <span class="st" id="br-st">Procurando a extensão do painel…</span>
+        <div class="br-install" id="br-install" hidden>
+          Para o botão funcionar, instale a extensão do painel no Chrome (só uma vez):
+          <ol>
+            <li>Abra <code>chrome://extensions</code> e ligue o <b>Modo do desenvolvedor</b> (canto superior direito).</li>
+            <li>Clique em <b>Carregar sem compactação</b> e escolha a pasta <code>extensao</code>, dentro da pasta onde o painel foi instalado.</li>
+            <li>Recarregue esta página (<kbd>F5</kbd>).</li>
+          </ol>
+        </div>
+      </div>
+      <div class="br-cols">
+        <div>
+          <h3>Abas abertas, por site</h3>
+          <div class="sites" id="br-sites"></div>
+        </div>
+        <div>
+          <h3>Processos de aba mais pesados</h3>
+          <div id="br-procs"></div>
+        </div>
+      </div>
+      <p class="br-help">De fora do navegador não dá para saber qual processo é qual aba. Para ver o consumo aba por aba, aperte <kbd>Shift</kbd>+<kbd>Esc</kbd> no navegador (Gerenciador de tarefas dele) e ordene por “Uso de memória”.</p>
+    </div>
+
+    <div class="card span-8">
+      <h2>Temperaturas ao vivo</h2>
+      <p class="sub">CPU e GPU nos últimos 2 minutos, em °C</p>
+      <div class="chart-wrap">
+        <svg id="temps" height="220" role="img" aria-label="Temperatura da CPU e da GPU ao longo do tempo"></svg>
+        <div class="tooltip" id="temps-tip"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--series-1)"></i>CPU</span>
+        <span><i style="background:var(--series-3)"></i>GPU</span>
+      </div>
+    </div>
+
+    <div class="card span-4">
+      <h2>Placa de vídeo</h2>
+      <p class="sub">Lido direto do driver NVIDIA</p>
+      <div id="gpu-card"><div class="loading">Carregando…</div></div>
+    </div>
+
+    <div class="card span-8">
+      <h2>Rede ao vivo</h2>
+      <p class="sub">Download e upload nos últimos 2 minutos, em Mbps (a mesma unidade dos planos de internet)</p>
+      <div class="chart-wrap">
+        <svg id="netchart" height="220" role="img" aria-label="Velocidade de download e upload ao longo do tempo"></svg>
+        <div class="tooltip" id="net-tip"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--series-1)"></i>Download (recebendo)</span>
+        <span><i style="background:var(--series-2)"></i>Upload (enviando)</span>
+      </div>
+    </div>
+
+    <div class="card span-4">
+      <h2>Conexão</h2>
+      <p class="sub">Placa de rede física deste PC</p>
+      <div id="net-card"><div class="loading">Carregando…</div></div>
+    </div>
+
+    <div class="card span-8">
+      <h2>Disco ao vivo</h2>
+      <p class="sub">Leitura e gravação somando todos os discos, nos últimos 2 minutos</p>
+      <div class="chart-wrap">
+        <svg id="iochart" height="220" role="img" aria-label="Velocidade de leitura e gravação dos discos ao longo do tempo"></svg>
+        <div class="tooltip" id="io-tip"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--series-1)"></i>Leitura</span>
+        <span><i style="background:var(--series-2)"></i>Gravação</span>
+      </div>
+    </div>
+
+    <div class="card span-4">
+      <h2>Atividade dos discos</h2>
+      <p class="sub">Cada disco físico deste PC</p>
+      <div id="io-card"><div class="loading">Carregando…</div></div>
+    </div>
+
+    <div class="card span-12">
+      <h2>Discos</h2>
+      <p class="sub">Espaço usado e livre por partição montada</p>
+      <div id="disks" class="disks"><div class="loading">Carregando…</div></div>
+    </div>
+
+    <div class="card span-12">
+      <h2>Programas instalados</h2>
+      <p class="sub">Apps da loja (Flatpak) e apps instalados no sistema (rpm-ostree) · “Remover” apaga o programa, os dados dele, ajustes e atalhos</p>
+      <div class="apps-tools">
+        <input class="path" id="apps-filter" placeholder="Filtrar por nome…" aria-label="Filtrar programas">
+        <button class="btn" id="apps-refresh">Atualizar</button>
+      </div>
+      <div id="orphans" class="orphans"></div>
+      <div class="apps-scroll" id="apps"><div class="loading">Carregando…</div></div>
+    </div>
+
+    <div class="card span-12">
+      <h2>Contêineres Docker</h2>
+      <p class="sub" id="dk-sub">Todos os contêineres do PC, ligados e parados, agrupados por projeto</p>
+      <div class="apps-tools">
+        <input class="path" id="dk-filter" placeholder="Filtrar por nome, imagem ou projeto…" aria-label="Filtrar contêineres">
+        <label class="dk-only"><input type="checkbox" id="dk-running"> só os ligados</label>
+        <button class="btn" id="dk-refresh">Atualizar</button>
+      </div>
+      <div class="apps-scroll" id="docker"><div class="loading">Carregando…</div></div>
+    </div>
+
+    <div class="card span-5">
+      <h2>O que ocupa espaço</h2>
+      <p class="sub">Clique numa pasta para entrar nela</p>
+      <div class="toolbar">
+        <div class="crumbs" id="crumbs"></div>
+        <button class="btn" id="refresh" title="Varre a pasta de novo">Atualizar</button>
+      </div>
+      <form class="toolbar" id="path-form">
+        <input class="path" id="path-input" placeholder="/caminho/da/pasta" aria-label="Caminho da pasta">
+        <button class="btn" type="submit">Ir</button>
+      </form>
+      <div id="folders"><div class="loading">Carregando…</div></div>
+    </div>
+
+    <div class="card span-7">
+      <h2>Maiores arquivos</h2>
+      <p class="sub" id="files-sub">Arquivos acima de 20 MB dentro da pasta atual</p>
+      <div class="files-scroll" id="files"></div>
+    </div>
+  </section>
+</main>
+<dialog id="confirm">
+  <h3 id="confirm-title">Limpar?</h3>
+  <div id="confirm-body"></div>
+  <div class="actions">
+    <button class="btn" id="confirm-no">Cancelar</button>
+    <button class="btn-danger" id="confirm-yes">Apagar definitivamente</button>
+  </div>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+<div class="cleaning" id="cleaning" role="status" aria-live="polite">
+  <div class="cleaning-head">
+    <span class="cleaning-icon"><span class="spin"></span><span class="mark" id="cleaning-mark">✓</span></span>
+    <span id="cleaning-title">Limpando…</span>
+  </div>
+  <div class="cleaning-path" id="cleaning-path"></div>
+  <div class="cleaning-bar"><div class="fill" id="cleaning-fill"></div></div>
+  <div class="cleaning-foot"><span id="cleaning-count"></span><span>Liberado: <b id="cleaning-freed">0 B</b></span></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function fmtBytes(n) {
+  if (n == null) return "–";
+  const u = ["B", "KB", "MB", "GB", "TB"];
+  let i = 0;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return (n >= 100 || i === 0 ? n.toFixed(0) : n.toFixed(1)).replace(".", ",") + " " + u[i];
+}
+const fmtPct = (x) => x.toFixed(1).replace(".", ",") + "%";
+function fmtUptime(s) {
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  return d ? `${d}d ${h}h` : h ? `${h}h ${m}min` : `${m}min`;
+}
+
+/* ---------- Sistema (polling) ---------- */
+const HISTORY = 60;
+const history = [];
+const fmtTemp = (x) => x == null ? "–" : Math.round(x) + " °C";
+const fmtWatts = (x) => x == null ? "–" : x.toFixed(0) + " W";
+
+function tempStatus(t) {
+  if (t == null) return "";
+  if (t >= 90) return `<span class="status critical">⚠ Muito quente</span>`;
+  if (t >= 80) return `<span class="status warning">▲ Quente</span>`;
+  return "";
+}
+
+async function pollSystem() {
+  try {
+    const r = await fetch("/api/system");
+    const s = await r.json();
+    const m = s.memory;
+    const memPct = 100 * m.used / m.total;
+    const g = s.gpus && s.gpus[0];
+
+    $("host").textContent = s.hostname;
+    $("meta").innerHTML = [s.os, "kernel " + s.kernel, s.cpu_model, s.cpu_count + " threads", g && g.name]
+      .filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("");
+
+    $("cpu-val").textContent = fmtPct(s.cpu_percent);
+    $("cpu-bar").style.width = s.cpu_percent + "%";
+    $("cpu-detail").textContent = `${s.cpu_count} threads`;
+
+    const tc = s.cpu_temp ? s.cpu_temp.value : null;
+    $("tcpu-val").textContent = tc == null ? "sem sensor" : fmtTemp(tc);
+    $("tcpu-bar").style.width = (tc || 0) + "%";
+    $("tcpu-detail").textContent = tc == null ? "" : `sensor ${s.cpu_temp.sensor} · escala até 100 °C`;
+    $("tcpu-st").innerHTML = tempStatus(tc);
+
+    if (g) {
+      $("gpu-val").textContent = g.util == null ? "–" : fmtPct(g.util);
+      $("gpu-bar").style.width = (g.util || 0) + "%";
+      $("gpu-detail").textContent = `${fmtWatts(g.power)} de ${fmtWatts(g.power_limit)}`;
+      $("tgpu-val").textContent = fmtTemp(g.temp);
+      $("tgpu-bar").style.width = (g.temp || 0) + "%";
+      $("tgpu-detail").textContent = g.fan == null ? "escala até 100 °C" : `ventoinha ${g.fan}%`;
+      $("tgpu-st").innerHTML = tempStatus(g.temp);
+      if (g.vram_total) {
+        const vp = 100 * g.vram_used / g.vram_total;
+        $("vram-val").innerHTML = `${fmtBytes(g.vram_used)} <small>/ ${fmtBytes(g.vram_total)}</small>`;
+        $("vram-bar").style.width = vp + "%";
+        $("vram-detail").textContent = `${fmtPct(vp)} · ${fmtBytes(g.vram_total - g.vram_used)} livre`;
+      }
+      renderGpuCard(g);
+    } else {
+      for (const id of ["gpu-val", "tgpu-val", "vram-val"]) $(id).textContent = "–";
+      $("gpu-detail").textContent = "GPU NVIDIA não detectada";
+      $("gpu-card").innerHTML = `<div class="loading">Nenhuma GPU NVIDIA encontrada (driver/NVML ausente)</div>`;
+    }
+
+    $("mem-val").innerHTML = `${fmtBytes(m.used)} <small>/ ${fmtBytes(m.total)}</small>`;
+    $("mem-bar").style.width = memPct + "%";
+    $("mem-detail").textContent = `${fmtPct(memPct)} · ${fmtBytes(m.available)} disponível`;
+
+    const swapPct = m.swap_total ? 100 * m.swap_used / m.swap_total : 0;
+    $("swap-val").innerHTML = m.swap_total ? `${fmtBytes(m.swap_used)} <small>/ ${fmtBytes(m.swap_total)}</small>` : "sem swap";
+    $("swap-bar").style.width = swapPct + "%";
+    $("swap-detail").textContent = m.swap_total ? fmtPct(swapPct) : "";
+
+    $("up-val").textContent = fmtUptime(s.uptime);
+    $("load-detail").textContent = "Carga média: " + s.loadavg.map((x) => x.toFixed(2).replace(".", ",")).join(" · ");
+
+    renderMemStack(m);
+    memTotal = m.total;
+
+    const rates = s.net ? netRates(s.net) : null;
+    const io = s.diskio ? ioRates(s.diskio) : {};
+    const ioList = Object.values(io);
+    if (s.diskio) renderIoCard(s.diskio, io);
+    if (s.net) renderNetCard(s.net, rates);
+
+    history.push({
+      t: Date.now(), cpu: s.cpu_percent, mem: memPct,
+      gpu: g ? g.util : null, tcpu: tc, tgpu: g ? g.temp : null,
+      rx: rates ? rates.rx / 1e6 : null, tx: rates ? rates.tx / 1e6 : null,
+      dr: ioList.length ? ioList.reduce((a, r) => a + r.read, 0) / 1048576 : null,
+      dw: ioList.length ? ioList.reduce((a, r) => a + r.write, 0) / 1048576 : null,
+    });
+    if (history.length > HISTORY) history.shift();
+    liveChart.render();
+    tempChart.render();
+    netChart.render();
+    ioChart.render();
+  } catch (e) {
+    $("meta").innerHTML = `<span class="err">Sem conexão com o servidor</span>`;
+  }
+}
+
+function renderGpuCard(g) {
+  const pp = g.power_limit ? 100 * g.power / g.power_limit : 0;
+  $("gpu-card").innerHTML = `
+    <div class="gpu-name">${esc(g.name)}</div>
+    <div class="kv">
+      <span class="k">Consumo de energia</span><span class="v">${fmtWatts(g.power)} <span style="color:var(--text-muted)">de ${fmtWatts(g.power_limit)}</span></span>
+      <div class="meter full"><i style="width:${pp}%;background:var(--series-3)"></i></div>
+      <span class="k">Uso da GPU</span><span class="v">${g.util == null ? "–" : fmtPct(g.util)}</span>
+      <span class="k">Temperatura</span><span class="v">${fmtTemp(g.temp)}</span>
+      <span class="k">Ventoinha</span><span class="v">${g.fan == null ? "–" : g.fan + "%"}${g.fan === 0 ? ' <span style="color:var(--text-muted)">(parada em baixa carga)</span>' : ""}</span>
+      <span class="k">VRAM</span><span class="v">${fmtBytes(g.vram_used)} <span style="color:var(--text-muted)">de ${fmtBytes(g.vram_total)}</span></span>
+    </div>`;
+}
+
+function renderMemStack(m) {
+  const free = m.free;
+  const cache = Math.max(m.total - m.used - free, 0);
+  const parts = [
+    { label: "Em uso por programas", v: m.used, c: "var(--series-2)" },
+    { label: "Cache / buffers (liberável)", v: cache, c: "var(--cache)" },
+    { label: "Livre", v: free, c: "var(--track)" },
+  ];
+  $("mem-total-sub").textContent = `Total de ${fmtBytes(m.total)}`;
+  $("mem-stack").innerHTML = parts.map((p) =>
+    `<i title="${p.label}: ${fmtBytes(p.v)}" style="width:${100 * p.v / m.total}%;background:${p.c}"></i>`).join("");
+  $("mem-legend").innerHTML = parts.map((p) =>
+    `<span style="display:flex;justify-content:space-between"><span><i style="background:${p.c};${p.c === "var(--track)" ? "outline:1px solid var(--border)" : ""}"></i>${p.label}</span>
+     <span style="font-variant-numeric:tabular-nums">${fmtBytes(p.v)} · ${fmtPct(100 * p.v / m.total)}</span></span>`).join("");
+}
+
+/* ---------- Gráfico de linha ao vivo (genérico) ---------- */
+function niceMax(v) {
+  // arredonda para cima em 1, 2, 2,5 ou 5 × 10^n
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  for (const m of [1, 2, 2.5, 5, 10]) if (v <= m * p) return m * p;
+  return 10 * p;
+}
+
+function makeLineChart({ svgId, tipId, series, max, unit, fmt, tickFmt, minMax = 1 }) {
+  let hover = null;
+  const chart = {};
+  chart.render = function () {
+    const svg = $(svgId);
+    const W = svg.clientWidth || 600, H = 220;
+    const pad = { l: tickFmt ? 64 : 40, r: 120, t: 10, b: 22 };
+    const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+    let top = max;
+    if (max === "auto") {
+      const peak = Math.max(minMax, ...history.flatMap((hh) => series.map((s) => hh[s.key] || 0)));
+      top = niceMax(peak);
+    }
+    const x = (i) => pad.l + (i / (HISTORY - 1)) * iw;
+    const y = (v) => pad.t + ih - (Math.min(v, top) / top) * ih;
+    const offset = HISTORY - history.length;
+
+    let out = `<g class="axis">`;
+    for (let k = 0; k <= 4; k++) {
+      const v = top * k / 4;
+      out += `<line x1="${pad.l}" x2="${pad.l + iw}" y1="${y(v)}" y2="${y(v)}"/>`;
+      out += `<text x="${pad.l - 8}" y="${y(v) + 4}" text-anchor="end">${tickFmt ? tickFmt(v) : v + unit}</text>`;
+    }
+    out += `<text x="${pad.l}" y="${H - 4}">−2 min</text><text x="${pad.l + iw}" y="${H - 4}" text-anchor="end">agora</text></g>`;
+
+    const last = history[history.length - 1];
+    for (const s of series) {
+      // quebra a linha onde não há valor
+      let seg = [];
+      const segs = [seg];
+      history.forEach((h, i) => {
+        if (h[s.key] == null) { if (seg.length) segs.push(seg = []); return; }
+        seg.push(`${x(i + offset).toFixed(1)},${y(h[s.key]).toFixed(1)}`);
+      });
+      for (const pts of segs) if (pts.length) {
+        out += `<polyline points="${pts.join(" ")}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      }
+      if (last && last[s.key] != null) {
+        out += `<circle cx="${x(HISTORY - 1)}" cy="${y(last[s.key])}" r="4" fill="${s.color}" stroke="var(--surface-1)" stroke-width="2"/>`;
+      }
+    }
+    // rótulos diretos no fim da linha, afastados para não colidir
+    if (last) {
+      const labels = series.filter((s) => last[s.key] != null)
+        .map((s) => ({ s, yy: y(last[s.key]) })).sort((a, b) => a.yy - b.yy);
+      for (let i = 1; i < labels.length; i++) {
+        if (labels[i].yy - labels[i - 1].yy < 14) labels[i].yy = labels[i - 1].yy + 14;
+      }
+      const overflow = labels.length ? labels[labels.length - 1].yy - (pad.t + ih) : 0;
+      if (overflow > 0) labels.forEach((l) => l.yy -= overflow);
+      for (const { s, yy } of labels) {
+        out += `<text x="${x(HISTORY - 1) + 10}" y="${yy + 4}" font-size="12" fill="var(--text-primary)">${s.label} ${fmt(last[s.key])}</text>`;
+      }
+    }
+    if (hover != null && history[hover - offset]) {
+      const hx = x(hover);
+      out += `<line x1="${hx}" x2="${hx}" y1="${pad.t}" y2="${pad.t + ih}" stroke="var(--text-muted)" stroke-dasharray="3 3"/>`;
+      for (const s of series) {
+        const v = history[hover - offset][s.key];
+        if (v != null) out += `<circle cx="${hx}" cy="${y(v)}" r="4" fill="${s.color}" stroke="var(--surface-1)" stroke-width="2"/>`;
+      }
+    }
+    out += `<rect x="${pad.l}" y="0" width="${iw}" height="${H}" fill="transparent" class="hit"/>`;
+    svg.innerHTML = out;
+
+    const hit = svg.querySelector(".hit");
+    const tip = $(tipId);
+    hit.onmousemove = (ev) => {
+      const r = svg.getBoundingClientRect();
+      const i = Math.round((ev.clientX - r.left - pad.l) / iw * (HISTORY - 1));
+      hover = Math.max(offset, Math.min(HISTORY - 1, i));
+      const h = history[hover - offset];
+      if (!h) return;
+      const ago = Math.round((Date.now() - h.t) / 1000);
+      tip.innerHTML = `<div style="color:var(--text-muted);margin-bottom:4px">${ago <= 1 ? "agora" : "há " + ago + " s"}</div>` +
+        series.map((s) => `<div class="t-row"><i style="background:${s.color}"></i>${s.label}<b>${h[s.key] == null ? "–" : fmt(h[s.key])}</b></div>`).join("");
+      const tx = x(hover);
+      tip.style.left = (tx > W / 2 ? tx - tip.offsetWidth - 12 : tx + 12) + "px";
+      tip.style.top = "10px";
+      tip.style.opacity = 1;
+      chart.render();
+    };
+    hit.onmouseleave = () => { hover = null; tip.style.opacity = 0; chart.render(); };
+  };
+  return chart;
+}
+
+const liveChart = makeLineChart({
+  svgId: "live", tipId: "live-tip", max: 100, unit: "%", fmt: fmtPct,
+  series: [
+    { key: "cpu", label: "CPU", color: "var(--series-1)" },
+    { key: "mem", label: "Memória", color: "var(--series-2)" },
+    { key: "gpu", label: "GPU", color: "var(--series-3)" },
+  ],
+});
+const tempChart = makeLineChart({
+  svgId: "temps", tipId: "temps-tip", max: 100, unit: "°", fmt: fmtTemp,
+  series: [
+    { key: "tcpu", label: "CPU", color: "var(--series-1)" },
+    { key: "tgpu", label: "GPU", color: "var(--series-3)" },
+  ],
+});
+const netChart = makeLineChart({
+  svgId: "netchart", tipId: "net-tip", max: "auto", minMax: 1,
+  fmt: (v) => fmtMbps(v * 1e6), tickFmt: fmtMbpsTick,
+  series: [
+    { key: "rx", label: "Download", color: "var(--series-1)" },
+    { key: "tx", label: "Upload", color: "var(--series-2)" },
+  ],
+});
+const ioChart = makeLineChart({
+  svgId: "iochart", tipId: "io-tip", max: "auto", minMax: 1,
+  fmt: (v) => fmtRate(v * 1048576), tickFmt: fmtRateTick,
+  series: [
+    { key: "dr", label: "Leitura", color: "var(--series-1)" },
+    { key: "dw", label: "Gravação", color: "var(--series-2)" },
+  ],
+});
+window.addEventListener("resize", () => { liveChart.render(); tempChart.render(); netChart.render(); ioChart.render(); });
+
+/* ---------- Programas por memória ---------- */
+let memTotal = 0;
+let netPrev = null;
+let ioPrev = null;
+
+function fmtRate(bps) {
+  // bytes por segundo -> texto
+  if (bps == null) return "–";
+  return fmtBytes(bps) + "/s";
+}
+function fmtRateTick(v) {
+  // v em MB/s
+  return v === 0 ? "0" : v >= 1 ? (+v.toFixed(1) + " MB/s").replace(".", ",") : +(v * 1024).toFixed(0) + " KB/s";
+}
+
+function ioRates(io) {
+  const out = {};
+  if (ioPrev && io.t > ioPrev.t) {
+    const dt = io.t - ioPrev.t;
+    for (const d of io.disks) {
+      const p = ioPrev.disks[d.name];
+      if (!p) continue;
+      out[d.name] = {
+        read: Math.max(d.read - p.read, 0) / dt,
+        write: Math.max(d.write - p.write, 0) / dt,
+        busy: Math.min(100, Math.max(d.io_ms - p.io_ms, 0) / (dt * 10)),
+      };
+    }
+  }
+  ioPrev = { t: io.t, disks: Object.fromEntries(io.disks.map((d) => [d.name, d])) };
+  return out;
+}
+
+function diskLabel(d) {
+  // nome amigável a partir das partições montadas (dados do cartão "Discos")
+  const parts = diskData.filter((x) => x.disk === d.name);
+  const main = parts.find((x) => ["/", "/home", "/var/home"].includes(x.mount));
+  const kind = d.transport === "nvme" ? "SSD NVMe" : d.rotational ? "HD" : "SSD";
+  if (main) return { title: "Disco principal (o “C:”)", kind };
+  const other = parts.find((x) => !x.mount.startsWith("/boot"));
+  return { title: other ? other.mount.split("/").pop() : d.name, kind };
+}
+
+function renderIoCard(io, rates) {
+  if (!io.disks.length) { $("io-card").innerHTML = `<div class="loading">Nenhum disco físico encontrado</div>`; return; }
+  const isMain = (d) => diskLabel(d).title.startsWith("Disco principal") ? 0 : 1;
+  const ordered = io.disks.slice().sort((a, b) => isMain(a) - isMain(b));
+  $("io-card").innerHTML = ordered.map((d) => {
+    const r = rates[d.name];
+    const lb = diskLabel(d);
+    const busy = r ? r.busy : 0;
+    const st = busy >= 90 ? `<span class="status warning">▲ No limite</span>` : "";
+    return `<div style="margin-bottom:16px">
+      <div class="gpu-name" style="margin-bottom:8px">${esc(lb.title)} <span style="font-weight:400;color:var(--text-muted)">· ${lb.kind} · ${esc(d.name)}</span>${st}</div>
+      <div class="kv">
+        <span class="k">Lendo agora</span><span class="v"><b>${r ? fmtRate(r.read) : "–"}</b></span>
+        <span class="k">Gravando agora</span><span class="v"><b>${r ? fmtRate(r.write) : "–"}</b></span>
+        <span class="k">Ocupado</span><span class="v">${r ? fmtPct(busy) : "–"}</span>
+        <div class="meter full"><i style="width:${busy}%;background:var(--series-1)"></i></div>
+        <span class="k">Lido / gravado desde que ligou</span><span class="v">${fmtBytes(d.read)} / ${fmtBytes(d.write)}</span>
+      </div>
+    </div>`;
+  }).join("") + `<p class="proc-tip" style="margin:0">“Ocupado” é quanto do tempo o disco passou trabalhando. Perto de 100% = ele virou o gargalo e o PC pode engasgar (comum em HD).</p>`;
+}
+
+function fmtMbps(bps) {
+  // bits por segundo -> texto
+  if (bps == null) return "–";
+  const mb = bps / 1e6;
+  if (mb >= 100) return mb.toFixed(0) + " Mbps";
+  if (mb >= 1) return mb.toFixed(1).replace(".", ",") + " Mbps";
+  return (bps / 1e3).toFixed(0) + " kbps";
+}
+function fmtMbpsTick(v) {
+  return (v >= 1 ? +v.toFixed(1) + " Mbps" : v === 0 ? "0" : +(v * 1000).toFixed(0) + " kbps").replace(".", ",");
+}
+
+function netRates(net) {
+  // soma das interfaces físicas; taxa = diferença dos contadores / tempo
+  const up = net.interfaces.filter((i) => i.state === "up");
+  const rx = up.reduce((a, i) => a + i.rx, 0), tx = up.reduce((a, i) => a + i.tx, 0);
+  let rates = null;
+  if (netPrev && net.t > netPrev.t) {
+    const dt = net.t - netPrev.t;
+    rates = { rx: Math.max(rx - netPrev.rx, 0) * 8 / dt, tx: Math.max(tx - netPrev.tx, 0) * 8 / dt };
+  }
+  netPrev = { t: net.t, rx, tx };
+  return rates;
+}
+
+function renderNetCard(net, rates) {
+  if (!net.interfaces.length) {
+    $("net-card").innerHTML = `<div class="loading">Nenhuma placa de rede física encontrada</div>`;
+    return;
+  }
+  $("net-card").innerHTML = net.interfaces.map((i) => {
+    const on = i.state === "up";
+    const kind = i.type === "wifi" ? "📶 Wi-Fi" : "🔌 Cabo de rede";
+    const speed = i.speed ? (i.speed >= 1000 ? i.speed / 1000 + " Gbps" : i.speed + " Mbps") : "–";
+    let sig = "";
+    if (i.signal_dbm != null) {
+      const q = i.signal_dbm >= -55 ? "ótimo" : i.signal_dbm >= -67 ? "bom" : i.signal_dbm >= -75 ? "fraco" : "muito fraco";
+      sig = `<span class="k">Sinal</span><span class="v">${q} <span style="color:var(--text-muted)">(${i.signal_dbm} dBm)</span></span>`;
+    }
+    return `<div class="gpu-name">${kind} <span style="font-weight:400;color:var(--text-muted)">· ${esc(i.name)}</span>
+        ${on ? `<span class="status" style="color:var(--good)">● Conectado</span>` : `<span class="status critical">● Desconectado</span>`}</div>
+      <div class="kv" style="margin-bottom:16px">
+        <span class="k">Baixando agora</span><span class="v"><b>${rates && on ? fmtMbps(rates.rx) : "–"}</b></span>
+        <span class="k">Enviando agora</span><span class="v"><b>${rates && on ? fmtMbps(rates.tx) : "–"}</b></span>
+        <span class="k">Velocidade da placa</span><span class="v">${speed}</span>
+        ${sig}
+        <span class="k">IP na sua rede</span><span class="v">${esc(i.ip || "–")}</span>
+        <span class="k">Recebido desde que ligou</span><span class="v">${fmtBytes(i.rx)}</span>
+        <span class="k">Enviado desde que ligou</span><span class="v">${fmtBytes(i.tx)}</span>
+      </div>`;
+  }).join("") + `<p class="proc-tip" style="margin:0">A “velocidade da placa” é o máximo do cabo/Wi-Fi até o roteador — a da internet depende do seu plano.</p>`;
+}
+const KIND_LABEL = {
+  app: `<span class="kind app">Aplicativo</span>`,
+  system: `<span class="kind system">⚙ Sistema — não feche</span>`,
+  docker: `<span class="kind">Docker</span>`,
+  service: `<span class="kind">Serviço em segundo plano</span>`,
+  terminal: `<span class="kind">Terminal</span>`,
+};
+
+async function loadProcesses() {
+  try {
+    const data = await (await fetch("/api/processes")).json();
+    const rows = data.top.slice();
+    if (data.others.count) rows.push({ name: `Outros (${data.others.count} programas)`, mem: data.others.mem, other: true });
+    const max = Math.max(...rows.map((r) => r.mem), 1);
+    $("procs").innerHTML = `<div class="procs">` + rows.map((r) => {
+      const pct = memTotal ? fmtPct(100 * r.mem / memTotal) + " da RAM" : "";
+      const sub = r.other ? "" : `${KIND_LABEL[r.kind] || ""} · ${r.count} ${r.count === 1 ? "processo" : "processos"}`;
+      return `<div class="proc-row" title="${esc(r.note || "")}${r.id ? "\n" + esc(r.id) : ""}">
+        <div class="proc-name"><b>${esc(r.name)}</b><small>${sub}</small></div>
+        <div class="proc-track"><i style="width:${100 * r.mem / max}%;${r.other ? "background:var(--text-muted)" : ""}"></i></div>
+        <div class="proc-size">${fmtBytes(r.mem)}<span>${pct}</span></div>
+      </div>`;
+    }).join("") + `</div>`;
+    browserId = (data.top.find((r) => r.browser) || {}).id || null;
+    loadBrowser(browserId);
+  } catch {
+    $("procs").innerHTML = `<div class="loading err">Erro ao ler os programas</div>`;
+  }
+}
+
+/* ---------- Navegador ---------- */
+const BR_ROLES = [
+  { k: "tab", label: "Abas e extensões", c: "var(--series-2)" },
+  { k: "ext", label: "Extensões", c: "var(--disk-free)" },
+  { k: "core", label: "Janela principal", c: "var(--series-1)" },
+  { k: "gpu", label: "Placa de vídeo (desenho da tela)", c: "var(--series-3)" },
+  { k: "service", label: "Serviços (rede, áudio, câmera…)", c: "var(--text-muted)" },
+];
+const MB = 1024 * 1024;
+let browserId = null;
+
+/* Ponte com a extensão "Painel do PC — Abas" (content script em ponte.js) */
+const extPending = new Map();
+let extSeq = 0, extOk = null;
+window.addEventListener("message", (ev) => {
+  if (ev.source !== window || !ev.data) return;
+  if (ev.data.painel === "extensao-pronta") extOk = true;
+  if (ev.data.painel !== "resposta") return;
+  const cb = extPending.get(ev.data.id);
+  if (cb) { extPending.delete(ev.data.id); cb(ev.data); }
+});
+function extCall(acao, args, timeout = 2500) {
+  return new Promise((resolve, reject) => {
+    const id = ++extSeq;
+    const timer = setTimeout(() => { extPending.delete(id); reject(new Error("sem extensão")); }, timeout);
+    extPending.set(id, (d) => {
+      clearTimeout(timer);
+      if (d.erro || d.resposta?.erro) reject(new Error(d.erro || d.resposta.erro)); else resolve(d.resposta);
+    });
+    window.postMessage({ painel: "pedido", id, acao, args }, "*");
+  });
+}
+let liveTabs = null;  // abas vindas da extensão (com estado "dormindo")
+async function refreshLiveTabs() {
+  try {
+    liveTabs = (await extCall("abas")).abas;
+    extOk = true;
+  } catch {
+    liveTabs = null;
+    extOk = false;
+  }
+  $("br-install").hidden = extOk;
+  $("br-sleep").disabled = !extOk;
+  $("br-sleep").title = extOk ? "" : "Instale a extensão do painel no Chrome para usar este botão (instruções abaixo).";
+  if (!extOk) $("br-st").textContent = "Extensão não encontrada.";
+  else if (!$("br-st").dataset.msg) {
+    const asleep = liveTabs.filter((t) => t.discarded).length;
+    $("br-st").textContent = `Extensão conectada · ${liveTabs.length} abas, ${asleep} dormindo. Abas dormindo continuam na barra e recarregam ao clicar.`;
+  }
+}
+async function sleepTabs(acao, args, btn) {
+  if (btn) btn.disabled = true;
+  try {
+    const r = await extCall(acao, args, 15000);
+    const msg = r.adormecidas ? `${r.adormecidas} ${r.adormecidas === 1 ? "aba adormecida" : "abas adormecidas"}. A memória e a CPU delas voltam em alguns segundos.`
+      : "Nenhuma aba para adormecer (as visíveis, fixadas, tocando som e chamadas de vídeo são preservadas).";
+    $("br-st").dataset.msg = "1";
+    $("br-st").textContent = msg;
+    toast(msg);
+    setTimeout(() => { delete $("br-st").dataset.msg; }, 8000);
+  } catch (e) {
+    toast("Não consegui falar com a extensão: " + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+    setTimeout(() => loadBrowser(browserId), 1500);
+  }
+}
+$("br-sleep").addEventListener("click", (ev) =>
+  sleepTabs("adormecer-paradas", { fixadas: $("br-pinned").checked }, ev.currentTarget));
+$("br-sites").addEventListener("click", (ev) => {
+  const b = ev.target.closest(".btn-zz");
+  if (b) sleepTabs("adormecer-ids", { ids: b.dataset.ids.split(",").map(Number) }, b);
+});
+
+function siteOf(t) {
+  if (t.url.startsWith("chrome://")) return "Páginas do Chrome";
+  try { return new URL(t.url).hostname.replace(/^www\./, "") || t.url; } catch { return t.url; }
+}
+
+function browserInsights(b, sites) {
+  const out = [];
+  const tab = b.roles.tab || { mem: 0, count: 0 };
+  const tabs = b.tabs.filter((t) => !t.app);
+  out.push({ html: `<b>${fmtPct(100 * tab.mem / b.total)}</b> da memória do navegador está nas <b>abas e extensões</b> (${tab.count} processos). O resto é o próprio navegador.` });
+  if (tabs.length && tab.count > tabs.length * 1.3) {
+    out.push({ html: `Você tem <b>${tabs.length} abas</b>, mas <b>${tab.count} processos</b> de conteúdo: o Chrome isola cada site — e cada vídeo, anúncio ou login embutido — num processo separado, por segurança. Por isso o número de processos é maior que o de abas.` });
+  }
+  for (const [site, list] of sites) {
+    if (list.length < 3 || site === "Páginas do Chrome") continue;
+    const video = /youtube|netflix|twitch|primevideo|globoplay/.test(site);
+    out.push({ warn: true, html: `<b>${list.length} abas de ${esc(site)}</b> abertas.${video ? " Cada vídeo carregado costuma ocupar 150–400 MB, mesmo pausado." : " Abas do mesmo site somam bastante."} Fechar as que não está vendo é o ganho mais rápido.` });
+  }
+  const old = b.tab_processes.filter((p) => p.mem > 400 * MB && p.age > 3 * 3600);
+  if (old.length) {
+    const pinned = tabs.filter((t) => t.pinned).map((t) => siteOf(t));
+    out.push({ warn: true, html: `<b>${old.length} ${old.length === 1 ? "processo de aba aberto" : "processos de aba abertos"} há mais de ${Math.floor(Math.min(...old.map((p) => p.age)) / 3600)} h</b> já ${old.length === 1 ? "ocupa" : "ocupam"} ${fmtBytes(old.reduce((a, p) => a + p.mem, 0))}. Sites que ficam abertos o dia todo${pinned.length ? ` (ex.: ${esc([...new Set(pinned)].join(", "))}, que está fixada)` : " (WhatsApp, Gmail…)"} vão acumulando memória — recarregar a aba (<kbd>F5</kbd>) costuma devolver boa parte.` });
+  }
+  const hot = b.tab_processes.filter((p) => (p.cpu || 0) >= 15);
+  if (hot.length) {
+    out.unshift({ warn: true, html: `<b>Provável causa do travamento:</b> ${hot.length === 1 ? "um processo de aba está" : `${hot.length} processos de aba estão`} usando <b>${hot.map((p) => Math.round(p.cpu) + "%").join(", ")} de CPU</b> sem parar${hot.some((p) => p.age > 3600) ? ", inclusive em segundo plano" : ""}. Adormecer as abas paradas (botão abaixo) costuma resolver na hora.` });
+  }
+  const cam = (b.roles.service?.items || []).find(([n]) => n === "Câmera");
+  if (cam) out.push({ html: `O <b>serviço de câmera</b> está ativo: alguma aba usou câmera ou microfone (Meet, WhatsApp…). Ele só fecha quando essa aba fechar.` });
+  if ((b.roles.gpu?.mem || 0) > 400 * MB) out.push({ html: `O processo da <b>placa de vídeo</b> está com ${fmtBytes(b.roles.gpu.mem)} — normal com muitos vídeos ou abas com animação.` });
+  out.push({ html: `Ative a <b>Economia de memória</b> em <code>chrome://settings/performance</code>: o Chrome “adormece” abas paradas e libera a memória delas sozinho.` });
+  return out;
+}
+
+async function loadBrowser(id) {
+  const card = $("browser-card");
+  if (!id) { card.hidden = true; return; }
+  try {
+    const b = await (await fetch("/api/browser?id=" + encodeURIComponent(id))).json();
+    if (b.error || !b.total) { card.hidden = true; return; }
+    card.hidden = false;
+    const tabs = b.tabs.filter((t) => !t.app);
+    $("br-title").textContent = `Por dentro do ${b.name}`;
+    $("br-sub").textContent = `${fmtBytes(b.total)} em ${b.count} processos · aberto há ${fmtUptime(b.uptime)}` +
+      (b.tabs.length ? ` · ${tabs.length} abas${b.tabs.length > tabs.length ? ` + ${b.tabs.length - tabs.length} janela(s) de app` : ""}` : "");
+    const parts = BR_ROLES.filter((r) => b.roles[r.k]).map((r) => ({ ...r, ...b.roles[r.k] }));
+    $("br-stack").innerHTML = parts.map((p) =>
+      `<i style="width:${100 * p.mem / b.total}%;background:${p.c}" title="${esc(p.label)}: ${fmtBytes(p.mem)}"></i>`).join("");
+    $("br-legend").innerHTML = parts.map((p) =>
+      `<span title="${esc(p.items.map(([n, m]) => `${n}: ${fmtBytes(m)}`).join("\n"))}"><i style="background:${p.c}"></i>${esc(p.label)} · <b>${fmtBytes(p.mem)}</b></span>`).join("");
+
+    await refreshLiveTabs();
+    const source = liveTabs ? liveTabs.map((t) => ({ ...t, app: false })) : b.tabs;
+    const bySite = new Map();
+    for (const t of source) {
+      const k = t.app ? "Apps instalados" : siteOf(t);
+      if (!bySite.has(k)) bySite.set(k, []);
+      bySite.get(k).push(t);
+    }
+    const sites = [...bySite].sort((a, z) => z[1].length - a[1].length);
+    $("br-insights").innerHTML = browserInsights(b, sites).map((i) => `<li class="${i.warn ? "warn" : ""}">${i.html}</li>`).join("");
+    $("br-sites").innerHTML = sites.length ? sites.map(([site, list]) => {
+      const titles = list.map((t) => (t.discarded ? "💤 " : "") + (t.pinned ? "📌 " : "") + (t.title || t.url)).join(" · ");
+      const asleep = list.filter((t) => t.discarded).length;
+      const awake = liveTabs ? list.filter((t) => !t.discarded && !t.active && !/^https?:\/\/(127\.0\.0\.1|localhost):8765\//.test(t.url)) : [];
+      const btn = awake.length ? `<button class="btn-zz" type="button" data-ids="${awake.map((t) => t.id).join(",")}" title="Adormece ${awake.length} aba(s) deste site que não estão na tela">😴 ${awake.length}</button>` : "<span></span>";
+      return `<div class="site" title="${esc(list.map((t) => (t.title || "") + "\n" + t.url).join("\n\n"))}">
+        <span class="n">${list.length}</span><span class="d">${esc(site)}${asleep ? `<span class="zz">${asleep} dormindo</span>` : ""}</span>${btn}<span class="t">${esc(titles)}</span></div>`;
+    }).join("") : `<div class="loading">Não consegui ler a sessão do navegador.</div>`;
+
+    const top = b.tab_processes.slice(0, 8);
+    top.push(...b.tab_processes.filter((p) => (p.cpu || 0) >= 15 && !top.includes(p)));
+    const max = Math.max(...top.map((p) => p.mem), 1);
+    $("br-procs").innerHTML = `<div class="procs">` + top.map((p, i) => `<div class="proc-row">
+        <div class="proc-name"><b>${i + 1}º mais pesado</b><small>${p.cpu == null ? "" : `<span class="${p.cpu >= 15 ? "cpu-hot" : ""}">${fmtPct(p.cpu)} CPU</span> · `}aberto há ${fmtUptime(p.age)} · PID ${p.pid}</small></div>
+        <div class="proc-track"><i style="width:${100 * p.mem / max}%"></i></div>
+        <div class="proc-size">${fmtBytes(p.mem)}</div>
+      </div>`).join("") + `</div>`;
+  } catch {
+    $("br-sub").innerHTML = `<span class="err">Erro ao ler o navegador</span>`;
+  }
+}
+
+/* ---------- Discos ---------- */
+function arcPath(cx, cy, r, ri, a0, a1) {
+  // fatia de rosca entre os ângulos a0 e a1 (radianos, 0 = topo)
+  if (a1 - a0 >= Math.PI * 2 - 1e-6) a1 = a0 + Math.PI * 2 - 1e-4;
+  const p = (rad, a) => [cx + rad * Math.sin(a), cy - rad * Math.cos(a)].map((n) => n.toFixed(2)).join(" ");
+  const large = a1 - a0 > Math.PI ? 1 : 0;
+  return `M${p(r, a0)} A${r} ${r} 0 ${large} 1 ${p(r, a1)} L${p(ri, a1)} A${ri} ${ri} 0 ${large} 0 ${p(ri, a0)} Z`;
+}
+
+function donutSVG(used, free, idx) {
+  const total = used + free || 1;
+  const cx = 70, cy = 70, r = 68, ri = 44;
+  const aUsed = (used / total) * Math.PI * 2;
+  const seg = [
+    { k: "used", a0: 0, a1: aUsed, c: "var(--series-1)" },
+    { k: "free", a0: aUsed, a1: Math.PI * 2, c: "var(--disk-free)" },
+  ].filter((s) => s.a1 - s.a0 > 0.001);
+  const pct = 100 * used / total;
+  return `<svg class="donut" viewBox="0 0 140 140" role="img" aria-label="${fmtPct(pct)} usado, ${fmtPct(100 - pct)} livre" data-i="${idx}">
+    ${seg.map((s) => `<path data-k="${s.k}" d="${arcPath(cx, cy, r, ri, s.a0, s.a1)}" fill="${s.c}" stroke="var(--surface-1)" stroke-width="2" stroke-linejoin="round"/>`).join("")}
+    <text class="c-big" x="70" y="72" text-anchor="middle">${fmtPct(pct)}</text>
+    <text class="c-small" x="70" y="89" text-anchor="middle">usado</text>
+  </svg>`;
+}
+
+// Explicação em linguagem simples, deduzida do ponto de montagem e do hardware
+const FS_INFO = {
+  btrfs: "btrfs (formato moderno do Linux, permite “fotos” do sistema para voltar atrás)",
+  ext4: "ext4 (formato padrão do Linux)",
+  vfat: "FAT32 (formato simples que a placa-mãe consegue ler)",
+  ntfs: "NTFS (formato do Windows)", ntfs3: "NTFS (formato do Windows)",
+  exfat: "exFAT (formato comum em pendrives e HDs externos)",
+  xfs: "XFS (formato do Linux para discos grandes)",
+};
+
+function hardwareText(d) {
+  const kind = d.transport === "usb" ? `disco USB (${d.rotational ? "HD" : "SSD/pendrive"})`
+    : d.transport === "nvme" ? "SSD NVMe interno (o tipo mais rápido)"
+    : d.transport === "sata" ? (d.rotational ? "HD interno (disco mecânico, mais lento)" : "SSD SATA interno")
+    : "disco";
+  const parts = [kind + (d.model ? ` — ${d.model}` : "")];
+  if (d.partition) parts.push(`partição ${d.partition} desse disco`);
+  parts.push(FS_INFO[d.fstype] || d.fstype);
+  return `${esc(d.device)} = ` + parts.map(esc).join(", ") + ".";
+}
+
+function explainDisk(d) {
+  const m = d.mount;
+  if (["/", "/home", "/var/home"].includes(m) || m.startsWith("/var/home/") || m.startsWith("/home/")) {
+    return {
+      title: "💻 Esse é o seu disco principal — o “C:” do Linux",
+      text: "Aqui ficam o sistema, os programas e todos os seus arquivos (Documentos, Downloads, Imagens…). " +
+        "É o disco que mais importa vigiar: se encher, o PC fica lento e programas param de funcionar." +
+        (m === "/var/home" ? " No Fedora Silverblue, o sistema e a sua pasta pessoal dividem esta mesma partição." : ""),
+    };
+  }
+  if (/^\/(run\/media|media|mnt)\//.test(m)) {
+    if (d.transport === "usb") {
+      return {
+        title: "🔌 Esse é um HD/SSD externo (ligado via USB)",
+        text: "Um disco removível, separado do sistema. Ótimo para backup e arquivos grandes. " +
+          "Antes de desconectar, use “Ejetar” no gerenciador de arquivos para não corromper os dados.",
+      };
+    }
+    return {
+      title: "🗄️ Esse é um segundo disco interno — como um “D:”",
+      text: "Um disco a mais, separado do sistema, instalado dentro do PC. Ótimo para backups, vídeos e arquivos grandes. " +
+        "Pode encher sem afetar o funcionamento do computador.",
+    };
+  }
+  if (m === "/boot/efi" || m === "/efi") {
+    return {
+      title: "🔑 Partição EFI — a “chave de ignição” do PC",
+      text: "É por aqui que a placa-mãe encontra o sistema quando você liga o computador. " +
+        "Ela é pequena e fica quase vazia de propósito — isso é normal. Nunca apague nem formate: o PC deixaria de ligar.",
+    };
+  }
+  if (m === "/boot") {
+    return {
+      title: "⚙️ Partição de inicialização do Linux",
+      text: "Guarda os arquivos que dão a partida no sistema (o kernel). O Fedora cuida dela sozinho a cada atualização — " +
+        "não salve nada aqui. Ocupar 20–40% é normal; se passar de 90%, as atualizações podem falhar.",
+    };
+  }
+  return {
+    title: "📦 Outra partição",
+    text: `Uma área separada do disco, montada em ${esc(m)}.`,
+  };
+}
+
+let diskData = [];
+async function loadDisks() {
+  try {
+    diskData = await (await fetch("/api/disks")).json();
+    $("disks").innerHTML = diskData.map((d, i) => {
+      const cap = d.used + d.free; // capacidade utilizável (como o Windows mostra)
+      const pct = 100 * d.used / cap;
+      const ext = /^\/(run\/media|media|mnt)\//.test(d.mount); // disco externo/montado
+      const st = pct >= 90 ? `<span class="status critical">⚠ Quase cheio</span>`
+        : pct >= 80 ? `<span class="status warning">▲ Atenção</span>` : "";
+      return `<div class="disk">
+        ${donutSVG(d.used, d.free, i)}
+        <div class="disk-info">
+          <div class="disk-name">${esc(ext ? d.mount.split("/").pop() : d.mount)}${st}</div>
+          <div class="disk-dev">${ext ? esc(d.mount) + "<br>" : ""}${esc(d.device)} · ${esc(d.fstype)}</div>
+          <div class="disk-leg">
+            <span class="k"><i style="background:var(--series-1)"></i>Usado</span>
+            <span class="v">${fmtBytes(d.used)}<small>${fmtPct(pct)}</small></span>
+            <span class="k"><i style="background:var(--disk-free)"></i>Livre</span>
+            <span class="v">${fmtBytes(d.free)}<small>${fmtPct(100 - pct)}</small></span>
+            <span class="k cap">Capacidade</span>
+            <span class="v cap"><b>${fmtBytes(cap)}</b></span>
+          </div>
+        </div>
+        ${(() => {
+          const ex = explainDisk(d);
+          const same = diskData.filter((x) => x.disk === d.disk).length;
+          return `<div class="disk-explain">
+            <b>${ex.title}</b>
+            <p>${ex.text}</p>
+            <p class="tech">${hardwareText(d)}${same > 1 ? ` Este disco físico está dividido em ${same} partições (as que mostram ${esc(d.disk)} aqui).` : ""}</p>
+          </div>`;
+        })()}
+      </div>`;
+    }).join("") || `<div class="loading">Nenhum disco encontrado</div>`;
+
+    // hover: destaca a fatia e mostra o valor dela no centro
+    $("disks").querySelectorAll(".donut").forEach((svg) => {
+      const d = diskData[svg.dataset.i];
+      const cap = d.used + d.free;
+      const big = svg.querySelector(".c-big"), small = svg.querySelector(".c-small");
+      const reset = () => { svg.classList.remove("hl"); big.textContent = fmtPct(100 * d.used / cap); small.textContent = "usado"; };
+      svg.querySelectorAll("path").forEach((p) => {
+        p.onmouseenter = () => {
+          svg.querySelectorAll("path").forEach((q) => q.classList.toggle("on", q === p));
+          svg.classList.add("hl");
+          const isUsed = p.dataset.k === "used";
+          big.textContent = fmtBytes(isUsed ? d.used : d.free);
+          small.textContent = isUsed ? "usado" : "livre";
+        };
+        p.onmouseleave = reset;
+      });
+    });
+  } catch {
+    $("disks").innerHTML = `<div class="loading err">Erro ao ler discos</div>`;
+  }
+}
+
+/* ---------- Pastas ---------- */
+let currentPath = null;
+
+let folderReq = 0; // só a resposta do pedido mais recente é desenhada
+
+async function loadFolder(path, refresh = false) {
+  const req = ++folderReq;
+  $("folders").innerHTML = `<div class="loading">Varrendo ${esc(path || "pasta pessoal")}… pode levar alguns segundos</div>`;
+  $("files").innerHTML = "";
+  const q = new URLSearchParams();
+  if (path) q.set("path", path);
+  if (refresh) q.set("refresh", "1");
+  try {
+    const r = await fetch("/api/files?" + q);
+    const data = await r.json();
+    if (req !== folderReq) return;
+    if (data.error) throw new Error(data.error);
+    currentPath = data.path;
+    $("path-input").value = data.path;
+    renderCrumbs(data.path);
+    renderFolders(data);
+    renderFiles(data);
+  } catch (e) {
+    if (req !== folderReq) return;
+    $("folders").innerHTML = `<div class="loading err">${esc(e.message)}</div>`;
+  }
+}
+
+function renderCrumbs(path) {
+  const parts = path.split("/").filter(Boolean);
+  let html = `<button data-p="/">/</button>`;
+  parts.forEach((p, i) => {
+    const full = "/" + parts.slice(0, i + 1).join("/");
+    html += i ? `<span class="sep">/</span>` : "";
+    html += i === parts.length - 1 ? `<span class="cur">${esc(p)}</span>` : `<button data-p="${esc(full)}">${esc(p)}</button>`;
+  });
+  $("crumbs").innerHTML = html;
+  $("crumbs").querySelectorAll("button").forEach((b) => b.onclick = () => loadFolder(b.dataset.p));
+}
+
+function renderFolders(data) {
+  const items = data.children.slice(0, 20);
+  const rest = data.children.slice(20);
+  if (rest.length) items.push({ name: `Outros (${rest.length} itens)`, size: rest.reduce((a, c) => a + c.size, 0), type: "files" });
+  const max = Math.max(...items.map((c) => c.size), 1);
+  const cleanable = data.children.filter((c) => c.safe && c.freeable > 0);
+  const totalFree = cleanable.reduce((a, c) => a + c.freeable, 0);
+  let head = `<div class="sub" style="margin-bottom:10px">Total: <b style="color:var(--text-primary)">${fmtBytes(data.total)}</b>${data.partial ? " · algumas pastas sem permissão foram ignoradas" : ""}</div>`;
+  if (cleanable.length) {
+    head += `<div class="clean-summary"><span><span class="badge safe">✓</span>Tudo aqui é cache. Dá para liberar <b>${fmtBytes(totalFree)}</b> sem afetar o sistema${data.children.some((c) => c.protected) ? " (pastas 🔒 protegidas ficam de fora)" : ""}.</span>
+      <button class="btn-clean" id="clean-folders">Limpar tudo</button></div>`;
+  }
+  if (!items.length) { $("folders").innerHTML = head + `<div class="loading">Pasta vazia</div>`; return; }
+  $("folders").innerHTML = head + `<div class="bars">` + items.map((c, idx) => {
+    const pct = data.total ? 100 * c.size / data.total : 0;
+    const click = c.type === "dir";
+    let act = "";
+    if (c.safe && c.freeable > 0) {
+      act = `<button class="btn-clean" data-ci="${idx}" title="${esc(c.note || "")} Libera ${fmtBytes(c.freeable)}.">Limpar</button>`;
+    } else if (c.protected) {
+      act = `<span class="badge lock" title="${esc(c.note)}">🔒 Protegido</span>`;
+    } else if (c.cache_root) {
+      act = `<button class="btn-clean" data-go="${esc(c.path)}" title="Abrir a .cache para escolher o que limpar">Limpar…</button>`;
+    }
+    return `<div class="bar-row ${click ? "clickable" : "files"}" ${click ? `tabindex="0" role="button" data-p="${esc(c.path)}"` : ""} title="${esc(c.name)} — ${fmtBytes(c.size)} (${fmtPct(pct)} da pasta)${c.note ? "\n" + esc(c.note) : ""}">
+      <div class="bar-name">${click ? "📁 " : ""}${esc(c.name)}</div>
+      <div class="bar-track"><i style="width:${100 * c.size / max}%"></i></div>
+      <div class="bar-size">${fmtBytes(c.size)} <span style="color:var(--text-muted)">${fmtPct(pct)}</span></div>
+      <div class="bar-act">${act}</div>
+    </div>`;
+  }).join("") + `</div>`;
+
+  const toItem = (c) => ({ target: c.path, freeable: c.freeable, empties: true, warn: c.note });
+  $("folders").querySelectorAll(".bar-row.clickable").forEach((row) => {
+    row.onclick = () => loadFolder(row.dataset.p);
+    row.onkeydown = (e) => { if (e.target === row && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); loadFolder(row.dataset.p); } };
+  });
+  $("folders").querySelectorAll(".btn-clean[data-ci]").forEach((btn) => {
+    btn.onclick = (e) => { e.stopPropagation(); askClean([toItem(items[btn.dataset.ci])]); };
+  });
+  $("folders").querySelectorAll(".btn-clean[data-go]").forEach((btn) => {
+    btn.onclick = (e) => { e.stopPropagation(); loadFolder(btn.dataset.go); };
+  });
+  if (cleanable.length) $("clean-folders").onclick = () => askClean(cleanable.map(toItem));
+}
+
+function renderFiles(data) {
+  $("files-sub").textContent = `Arquivos acima de 20 MB dentro de ${data.path}`;
+  if (!data.largest_files.length) { $("files").innerHTML = `<div class="loading">Nenhum arquivo acima de 20 MB</div>`; return; }
+  const base = data.path === "/" ? "/" : data.path + "/";
+
+  // alvos seguros únicos (vários arquivos podem estar na mesma pasta de modelo)
+  const targets = new Map();
+  for (const f of data.largest_files) if (f.safe && !targets.has(f.target)) targets.set(f.target, f);
+  const totalFree = [...targets.values()].reduce((a, f) => a + f.freeable, 0);
+
+  const summary = targets.size
+    ? `<div class="clean-summary"><span><span class="badge safe">✓</span>Dá para liberar <b>${fmtBytes(totalFree)}</b> com segurança (só cache, sem afetar o sistema)</span>
+       <button class="btn-clean" id="clean-all">Limpar todos os seguros</button></div>`
+    : "";
+
+  $("files").innerHTML = summary + `<table><thead><tr><th>Arquivo</th><th class="num">Tamanho</th><th></th></tr></thead><tbody>` +
+    data.largest_files.map((f, idx) => {
+      const rel = f.path.startsWith(base) ? f.path.slice(base.length) : f.path;
+      const i = rel.lastIndexOf("/");
+      const dir = i >= 0 ? rel.slice(0, i + 1) : "";
+      const name = rel.slice(i + 1);
+      const date = new Date(f.mtime * 1000).toLocaleDateString("pt-BR");
+      let note = esc(f.note || "");
+      if (f.safe && f.freeable < f.target_size * 0.9) {
+        note += ` <b>Libera só ${fmtBytes(f.freeable)}</b> — o resto já está em uso por um programa instalado (arquivo compartilhado).`;
+      }
+      const badge = f.safe
+        ? `<span class="badge safe">✓ Seguro apagar</span>`
+        : `<span class="badge lock">🔒 Não apagar</span>`;
+      const action = f.safe ? `<button class="btn-clean" data-i="${idx}">Limpar</button>` : "";
+      return `<tr title="${esc(f.path)} · modificado em ${date}">
+        <td class="p"><span class="dir">${esc(dir)}</span>${esc(name)}
+          <div class="why">${badge}${esc(f.label)} — ${note}</div></td>
+        <td class="num">${fmtBytes(f.size)}</td>
+        <td class="act">${action}</td></tr>`;
+    }).join("") + `</tbody></table>`;
+
+  $("files").querySelectorAll(".btn-clean[data-i]").forEach((btn) => {
+    btn.onclick = () => askClean([data.largest_files[btn.dataset.i]]);
+  });
+  if (targets.size) $("clean-all").onclick = () => askClean([...targets.values()]);
+}
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove("show"), 4000);
+}
+
+function askClean(items) {
+  const uniq = [...new Map(items.map((f) => [f.target, f])).values()];
+  const total = uniq.reduce((a, f) => a + f.freeable, 0);
+  const short = (p) => p.replace(/^(\/var)?\/home\/[^/]+/, "~");
+  $("confirm-title").textContent = uniq.length === 1 ? "Limpar este item do cache?" : `Limpar ${uniq.length} itens do cache?`;
+  $("confirm-body").innerHTML = `
+    <p style="margin:0;font-size:13.5px">Vai liberar cerca de <b>${fmtBytes(total)}</b>. Isso <b>não afeta o sistema</b>:
+    se algum programa precisar desses arquivos de novo, ele baixa outra vez.</p>
+    <ul>${uniq.map((f) => `<li>${esc(short(f.target))}${f.empties ? " <i>(esvazia a pasta)</i>" : f.target_is_dir ? " <i>(pasta inteira)</i>" : ""} — ${fmtBytes(f.freeable)}${f.warn ? `<br><span style="color:var(--text-muted)">${esc(f.warn)}</span>` : ""}</li>`).join("")}</ul>
+    <p style="margin:0;font-size:12.5px;color:var(--text-muted)">Os arquivos são apagados de vez (não vão para a lixeira).</p>`;
+  const dlg = $("confirm");
+  const trigger = document.activeElement?.closest?.(".btn-clean");
+  $("confirm-no").onclick = () => dlg.close();
+  $("confirm-yes").onclick = async () => {
+    dlg.close();
+    let freed = 0;
+    const errors = [];
+    const buttons = [...document.querySelectorAll(".btn-clean")];
+    buttons.forEach((b) => (b.disabled = true));
+    trigger?.classList.add("is-busy");
+    trigger?.closest(".bar-row, tr")?.classList.add("is-cleaning");
+    const prog = cleaningStart(uniq.length);
+    for (const [i, f] of uniq.entries()) {
+      prog.step(i, short(f.target), freed);
+      try {
+        const r = await fetch("/api/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Painel": "1" },
+          body: JSON.stringify({ target: f.target }),
+        });
+        const res = await r.json();
+        if (res.ok) { freed += res.freed; if (res.aviso) errors.push(res.aviso); } else errors.push(res.error);
+      } catch (e) { errors.push(e.message); }
+    }
+    prog.finish(freed, errors);
+    buttons.forEach((b) => (b.disabled = false));
+    loadDisks();
+    loadFolder(currentPath, true);
+  };
+  dlg.showModal();
+}
+
+/* ---------- Animação de progresso da limpeza ---------- */
+function cleaningStart(total) {
+  const box = $("cleaning");
+  clearTimeout(box._h);
+  box.classList.remove("done", "error");
+  $("cleaning-fill").style.transform = "scaleX(0)";
+  $("cleaning-freed").textContent = "0 B";
+  box.classList.add("show");
+  return {
+    step(i, path, freed) {
+      $("cleaning-title").textContent = total > 1 ? `Limpando ${i + 1} de ${total}…` : "Limpando…";
+      $("cleaning-path").textContent = path;
+      $("cleaning-count").textContent = `${i} de ${total} concluído${total > 1 ? "s" : ""}`;
+      $("cleaning-freed").textContent = fmtBytes(freed);
+      // avança até o meio do item atual: mostra que está trabalhando nele
+      $("cleaning-fill").style.transform = `scaleX(${(i + 0.5) / total})`;
+    },
+    finish(freed, errors) {
+      $("cleaning-fill").style.transform = "scaleX(1)";
+      $("cleaning-freed").textContent = fmtBytes(freed);
+      $("cleaning-count").textContent = `${total - errors.length} de ${total} concluído${total > 1 ? "s" : ""}`;
+      if (errors.length) {
+        box.classList.add("error");
+        $("cleaning-mark").textContent = "!";
+        $("cleaning-title").textContent = `Terminou com ${errors.length} erro(s)`;
+        $("cleaning-path").textContent = errors[0];
+      } else {
+        box.classList.add("done");
+        $("cleaning-mark").textContent = "✓";
+        $("cleaning-title").textContent = `Pronto! ${fmtBytes(freed)} liberados`;
+        $("cleaning-path").textContent = "Limpeza concluída";
+      }
+      box._h = setTimeout(() => box.classList.remove("show"), errors.length ? 8000 : 5000);
+    },
+  };
+}
+
+/* ---------- Programas instalados ---------- */
+let appsData = null;
+const shortHome = (p) => p.replace(/^(\/var)?\/home\/[^/]+/, "~");
+
+async function loadApps(refresh = false) {
+  try {
+    const r = await fetch("/api/apps" + (refresh ? "?refresh=1" : ""));
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    appsData = data;
+    renderApps();
+  } catch (e) {
+    $("apps").innerHTML = `<div class="loading err">Erro ao ler os programas: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderApps() {
+  const { apps, orphans } = appsData;
+  const total = orphans.reduce((a, o) => a + o.size, 0);
+  $("orphans").innerHTML = orphans.length ? `<div class="clean-summary">
+      <span><span class="badge safe">✓</span>Restos de ${orphans.length} ${orphans.length === 1 ? "programa já removido" : "programas já removidos"}:
+      <b>${fmtBytes(total)}</b> (${orphans.map((o) => esc(o.id)).join(", ")}). O programa não existe mais; só ficaram os dados.</span>
+      <button class="btn-clean" id="orphans-clean">Apagar restos</button></div>` : "";
+  if (orphans.length) $("orphans-clean").onclick = () => askOrphans(orphans);
+
+  const q = $("apps-filter").value.trim().toLowerCase();
+  const list = apps.filter((a) => !q || (a.name + " " + a.id).toLowerCase().includes(q));
+  if (!list.length) { $("apps").innerHTML = `<div class="loading">Nenhum programa encontrado</div>`; return; }
+  $("apps").innerHTML = `<table class="apps-table"><thead><tr><th>Programa</th><th>Origem</th>
+      <th class="num">Programa</th><th class="num">Dados seus</th><th class="num">Total</th><th></th></tr></thead><tbody>` +
+    list.map((a) => `<tr title="${esc(a.id)} · versão ${esc(a.version || "–")}">
+      <td class="app-name"><b>${esc(a.name)}</b><small>${esc(a.description || a.id)}</small></td>
+      <td><span class="origin ${a.origin === "fedora" ? "fedora" : ""}">${esc(ORIGIN_LABEL[a.origin] || a.origin)}</span></td>
+      <td class="num">${fmtBytes(a.size)}</td>
+      <td class="num">${a.data ? fmtBytes(a.data) : "–"}</td>
+      <td class="num"><b>${fmtBytes(a.size + a.data)}</b></td>
+      <td class="act">${a.pending
+        ? `<span class="app-open" title="O pacote já foi tirado do sistema; os arquivos dele somem quando o PC reiniciar">↻ Sai ao reiniciar</span>`
+        : a.running
+        ? `<span class="app-open" title="Feche o app para poder remover">● Aberto</span>`
+        : `<button class="btn-remove" data-id="${esc(a.id)}">Remover</button>`}</td></tr>`).join("") +
+    `</tbody></table>` +
+    (appsData.protected ? `<p class="proc-tip" style="margin:10px 0 0">🔒 ${appsData.protected} pacotes do sistema instalados com rpm-ostree não aparecem aqui: driver da NVIDIA, Docker, zsh, git, Node.js e bibliotecas. Removê-los pode quebrar o PC.</p>` : "");
+  $("apps").querySelectorAll(".btn-remove").forEach((b) => {
+    b.onclick = () => askUninstall(apps.find((a) => a.id === b.dataset.id));
+  });
+}
+
+const ORIGIN_LABEL = { fedora: "Veio com o Fedora", flathub: "Flathub", "rpm-ostree": "Pacote do sistema" };
+
+function askUninstall(a) {
+  if (a.kind === "rpm") return askUninstallRpm(a);
+  $("confirm-title").textContent = `Remover ${a.name} por completo?`;
+  $("confirm-body").innerHTML = `
+    <p style="margin:0;font-size:13.5px">Vai apagar o programa e <b>tudo que ele guardou</b> no PC:</p>
+    <ul>
+      <li>O programa (${a.installation === "system" ? "para todos os usuários" : "só do seu usuário"}) — ${fmtBytes(a.size)}</li>
+      ${a.leftovers.map((p) => `<li>${esc(shortHome(p))}</li>`).join("")}
+      <li>Permissões e ajustes dados ao app</li>
+      <li>Bibliotecas (runtimes) que nenhum outro app usa mais</li>
+    </ul>
+    ${a.data > 100 * MB ? `<p style="margin:0 0 6px;font-size:13px">Os dados somam <b>${fmtBytes(a.data)}</b>: logins, histórico, configurações e arquivos baixados dentro do app. Se quiser guardar algo, salve antes.</p>` : ""}
+    ${a.origin === "fedora" ? `<p style="margin:0 0 6px;font-size:13px;color:var(--warning)">Este app veio com o Fedora. Dá para reinstalar depois pela loja de apps (GNOME Software).</p>` : ""}
+    <p style="margin:0;font-size:12.5px;color:var(--text-muted)">Os arquivos são apagados de vez (não vão para a lixeira).</p>`;
+  $("confirm-yes").textContent = "Remover tudo";
+  runConfirmed([{ label: a.name, path: "/api/uninstall", id: a.id }]);
+}
+
+function askUninstallRpm(a) {
+  $("confirm-title").textContent = `Remover ${a.name} por completo?`;
+  $("confirm-body").innerHTML = `
+    <p style="margin:0;font-size:13.5px">O programa (${fmtBytes(a.size)}) foi instalado com <code>rpm-ostree</code>.
+    Ele sai do sistema <b>quando o PC reiniciar</b>.</p>
+    ${a.leftovers.length ? `<p style="margin:12px 0 4px;font-size:13.5px">Pastas de dados encontradas. Desmarque o que quiser guardar:</p>
+    <div style="display:grid;gap:6px;font-size:13px">${a.leftovers.map((p, i) => `<label style="display:flex;gap:8px;align-items:center;cursor:pointer">
+      <input type="checkbox" class="rpm-path" data-i="${i}" checked> ${esc(shortHome(p))}</label>`).join("")}</div>
+    ${a.data > 100 * MB ? `<p style="margin:8px 0 0;font-size:13px">Os dados somam <b>${fmtBytes(a.data)}</b>: configurações, extensões e histórico.</p>` : ""}`
+    : `<p style="margin:12px 0 0;font-size:13px">Não achei pastas de dados dele na sua pasta pessoal.</p>`}
+    <p style="margin:12px 0 0;font-size:12.5px;color:var(--text-muted)">As pastas marcadas são apagadas agora, de vez. Não abra o programa até reiniciar, senão ele cria as pastas de novo.</p>`;
+  $("confirm-yes").textContent = "Remover";
+  const paths = () => [...document.querySelectorAll(".rpm-path:checked")].map((c) => a.leftovers[c.dataset.i]);
+  runConfirmed([{ label: a.name, path: "/api/uninstall-rpm", id: a.id, paths }]);
+}
+
+function askOrphans(orphans) {
+  $("confirm-title").textContent = `Apagar restos de ${orphans.length} ${orphans.length === 1 ? "programa" : "programas"}?`;
+  $("confirm-body").innerHTML = `
+    <p style="margin:0;font-size:13.5px">Esses programas já foram desinstalados. Sobraram só os dados deles:</p>
+    <ul>${orphans.map((o) => `<li><b>${esc(o.id)}</b> — ${fmtBytes(o.size)}<br>${o.paths.map((p) => esc(shortHome(p))).join("<br>")}</li>`).join("")}</ul>
+    <p style="margin:0;font-size:12.5px;color:var(--text-muted)">Se você reinstalar o programa, ele começa do zero. Os arquivos são apagados de vez.</p>`;
+  $("confirm-yes").textContent = "Apagar restos";
+  runConfirmed(orphans.map((o) => ({ label: o.id, path: "/api/orphan", id: o.id })));
+}
+
+function runConfirmed(jobs) {
+  const dlg = $("confirm");
+  $("confirm-no").onclick = () => dlg.close();
+  dlg.addEventListener("close", () => { $("confirm-yes").textContent = "Apagar definitivamente"; }, { once: true });
+  $("confirm-yes").onclick = async () => {
+    const bodies = jobs.map((j) => JSON.stringify({ id: j.id, paths: j.paths ? j.paths() : undefined }));
+    dlg.close();
+    let freed = 0, reboot = false;
+    const errors = [];
+    const buttons = [...document.querySelectorAll(".btn-remove, #orphans-clean")];
+    buttons.forEach((b) => (b.disabled = true));
+    const prog = cleaningStart(jobs.length);
+    for (const [i, j] of jobs.entries()) {
+      prog.step(i, j.label, freed);
+      $("cleaning-title").textContent = `Removendo ${j.label}…`;
+      try {
+        const r = await fetch(j.path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Painel": "1" },
+          body: bodies[i],
+        });
+        const res = await r.json();
+        if (res.ok) { freed += res.freed; reboot ||= res.reboot; errors.push(...(res.avisos || [])); } else errors.push(res.error);
+      } catch (e) { errors.push(e.message); }
+    }
+    prog.finish(freed, errors);
+    if (!errors.length) $("cleaning-path").textContent = reboot ? "Reinicie o PC para o programa sair do sistema" : "Removido por completo";
+    buttons.forEach((b) => (b.disabled = false));
+    loadDisks();
+    loadApps(true);
+  };
+  dlg.showModal();
+}
+
+$("apps-filter").oninput = () => appsData && renderApps();
+$("apps-refresh").onclick = () => loadApps(true);
+
+$("refresh").onclick = () => currentPath && loadFolder(currentPath, true);
+$("path-form").onsubmit = (e) => { e.preventDefault(); const p = $("path-input").value.trim(); if (p) loadFolder(p); };
+
+/* ---------- Contêineres Docker ---------- */
+let dockerData = null;
+const DK_UNITS = { second: "segundo", seconds: "segundos", minute: "minuto", minutes: "minutos", hour: "hora", hours: "horas",
+  day: "dia", days: "dias", week: "semana", weeks: "semanas", month: "mês", months: "meses", year: "ano", years: "anos" };
+function dkAgo(t) {
+  // "10 hours" / "About an hour" / "Less than a second" -> português
+  t = t.replace(/^About /i, "cerca de ").replace(/^Less than a second/i, "menos de 1 segundo")
+       .replace(/\ban?\s+(hour|minute|second|day|week|month|year)\b/i, "1 $1");
+  return t.replace(/\b(seconds?|minutes?|hours?|days?|weeks?|months?|years?)\b/gi, (u) => DK_UNITS[u.toLowerCase()] || u);
+}
+const DK_EXIT = { 0: "parou normalmente", 137: "foi encerrado à força (137)", 143: "foi desligado (143)", 255: "parou de forma abrupta (255)" };
+function dkState(c) {
+  const s = c.status || "";
+  if (c.state === "running") {
+    const up = s.match(/^Up (.+?)(?: \(.+\))?$/);
+    const health = c.health === "healthy" ? " · saudável" : c.health === "unhealthy" ? " · com problema" : c.health === "starting" ? " · iniciando" : "";
+    const cls = c.health === "unhealthy" ? "bad" : c.health === "starting" ? "warn" : "on";
+    return { cls, label: "Ligado" + health, detail: up ? "há " + dkAgo(up[1]) : s };
+  }
+  if (c.state === "exited") {
+    const ago = s.match(/\) (.+) ago$/);
+    const why = DK_EXIT[c.exit] ?? `parou com erro (código ${c.exit})`;
+    const cls = [0, 137, 143, 255].includes(c.exit) ? "off" : "bad";
+    return { cls, label: "Parado", detail: why + (ago ? " · há " + dkAgo(ago[1]) : "") };
+  }
+  const names = { paused: "Pausado", restarting: "Reiniciando", created: "Criado, nunca ligou", dead: "Morto", removing: "Sendo removido" };
+  return { cls: c.state === "restarting" ? "warn" : c.state === "dead" ? "bad" : "off", label: names[c.state] || c.state, detail: s };
+}
+
+async function loadDocker() {
+  try {
+    const data = await (await fetch("/api/docker")).json();
+    if (data.error) throw new Error(data.error);
+    dockerData = data.containers;
+    renderDocker();
+  } catch (e) {
+    $("docker").innerHTML = `<div class="loading err">Erro ao ler os contêineres: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderDocker() {
+  const all = dockerData;
+  const on = all.filter((c) => c.state === "running").length;
+  const disk = all.reduce((a, c) => a + c.size, 0);
+  const mem = all.reduce((a, c) => a + (c.mem || 0), 0);
+  $("dk-sub").textContent = `${all.length} contêineres: ${on} ligados e ${all.length - on} parados · ` +
+    (mem ? `os ligados usam ${fmtBytes(mem)} de memória · ` : "") +
+    `${fmtBytes(disk)} gravados dentro deles (fora as imagens)`;
+
+  const q = $("dk-filter").value.trim().toLowerCase();
+  const onlyOn = $("dk-running").checked;
+  const list = all.filter((c) => (!onlyOn || c.state === "running") &&
+    (!q || [c.name, c.image, c.project].join(" ").toLowerCase().includes(q)));
+  if (!list.length) { $("docker").innerHTML = `<div class="loading">Nenhum contêiner encontrado</div>`; return; }
+
+  const groups = new Map();
+  for (const c of list) {
+    const k = c.project || "";
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(c);
+  }
+  const running = (cs) => cs.filter((c) => c.state === "running").length;
+  const keys = [...groups.keys()].sort((a, b) =>
+    (!a) - (!b) || (running(groups.get(b)) > 0) - (running(groups.get(a)) > 0) || a.localeCompare(b));
+
+  const ports = (c) => {
+    const pub = c.published.map((p) => `<a class="dk-port" href="http://localhost:${esc(p.host)}" target="_blank" rel="noopener"
+        title="${p.local ? "Só este PC" : "Aberta na rede"} · porta ${esc(p.host)} do PC → ${esc(p.inner)} no contêiner">:${esc(p.host)}${p.local ? "" : " 🌐"}</a>`);
+    const inn = c.internal.map((p) => `<span class="dk-port inner" title="Só dentro do Docker, não abre no PC">${esc(p)}</span>`);
+    return pub.concat(inn).join("") || `<span class="app-open">–</span>`;
+  };
+  const row = (c) => {
+    const st = dkState(c);
+    return `<tr class="${c.state === "running" ? "" : "dk-stopped"}" title="${esc(c.id)} · criado em ${esc(c.created)}">
+      <td class="app-name"><b>${esc(c.name)}</b><small>${esc(c.image)}</small></td>
+      <td><span class="dk-state ${st.cls}">${esc(st.label)}<small>${esc(st.detail)}</small></span></td>
+      <td><div class="dk-ports">${ports(c)}</div></td>
+      <td class="num" title="100% = 1 thread inteira da CPU">${c.cpu == null ? "–"
+        : `<span class="${c.cpu >= 50 ? "dk-cpu-hot" : ""}">${c.cpu.toFixed(1).replace(".", ",")}%</span>`}</td>
+      <td class="num">${c.mem == null ? "–" : fmtBytes(c.mem)}</td>
+      <td class="num" title="Imagem: ${fmtBytes(c.virtual)}">${c.size ? fmtBytes(c.size) : "–"}</td>
+      <td class="act"><div class="dk-acts">${dkButtons(c)}</div></td></tr>`;
+  };
+  $("docker").innerHTML = `<table class="dk-table"><thead><tr><th>Contêiner</th><th>Estado</th>
+      <th>Portas</th><th class="num">CPU</th><th class="num">Memória</th><th class="num" title="O que o contêiner gravou dentro dele, fora a imagem">Disco</th><th></th></tr></thead><tbody>` +
+    keys.map((k) => {
+      const cs = groups.get(k).sort((a, b) => (b.state === "running") - (a.state === "running") || a.name.localeCompare(b.name));
+      const dir = cs[0].workdir ? cs[0].workdir.replace(/^\/var\/home\/[^/]+|^\/home\/[^/]+/, "~") : "";
+      return `<tr class="dk-group"><td colspan="7"><b>${esc(k || "Sem projeto (avulsos)")}</b>` +
+        `<small>${running(cs)} de ${cs.length} ligados${dir ? " · " + esc(dir) : ""}</small></td></tr>` + cs.map(row).join("");
+    }).join("") + `</tbody></table>`;
+  $("docker").querySelectorAll(".dk-acts button").forEach((b) => {
+    b.onclick = () => dockerAction(dockerData.find((c) => c.id === b.dataset.id), b.dataset.act, b);
+  });
+}
+
+const dkBusy = new Map(); // id -> ação em andamento
+const DK_ACT = {
+  start: { label: "Ligar", cls: "btn-clean", doing: "Ligando", done: "ligado" },
+  stop: { label: "Parar", cls: "btn-remove", doing: "Parando", done: "parado" },
+  restart: { label: "Reiniciar", cls: "btn", doing: "Reiniciando", done: "reiniciado" },
+};
+function dkButtons(c) {
+  const acts = c.state === "running" || c.state === "restarting" ? ["restart", "stop"] : ["start"];
+  const busy = dkBusy.get(c.id);
+  return acts.map((a) => `<button type="button" class="${DK_ACT[a].cls}${busy === a ? " is-busy" : ""}" data-id="${esc(c.id)}"
+      data-act="${a}" ${busy ? "disabled" : ""} aria-label="${DK_ACT[a].label} ${esc(c.name)}">${DK_ACT[a].label}</button>`).join("");
+}
+async function dockerAction(c, act, btn) {
+  if (!c || dkBusy.has(c.id)) return;
+  dkBusy.set(c.id, act);
+  btn.closest(".dk-acts").innerHTML = dkButtons(c);
+  try {
+    const r = await (await fetch("/api/docker-action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Painel": "1" },
+      body: JSON.stringify({ id: c.id, action: act }),
+    })).json();
+    if (r.error) throw new Error(r.error);
+    toast(`${c.name} ${DK_ACT[act].done}.`);
+  } catch (e) {
+    toast(`Não consegui ${DK_ACT[act].label.toLowerCase()} ${c.name}: ${e.message}`);
+  } finally {
+    dkBusy.delete(c.id);
+    loadDocker();
+  }
+}
+
+$("dk-filter").oninput = () => dockerData && renderDocker();
+$("dk-running").onchange = () => dockerData && renderDocker();
+$("dk-refresh").onclick = loadDocker;
+
+/* ---------- Tema claro/escuro ---------- */
+const darkQuery = matchMedia("(prefers-color-scheme: dark)");
+const currentTheme = () => document.documentElement.dataset.theme || (darkQuery.matches ? "dark" : "light");
+function renderThemeBtn() {
+  const dark = currentTheme() === "dark";
+  $("theme-btn").textContent = dark ? "☀️ Modo claro" : "🌙 Modo escuro";
+  $("theme-btn").setAttribute("aria-label", dark ? "Mudar para o modo claro" : "Mudar para o modo escuro");
+}
+$("theme-btn").onclick = () => {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("painel-tema", next); } catch {}
+  renderThemeBtn();
+};
+darkQuery.addEventListener("change", renderThemeBtn);
+renderThemeBtn();
+
+pollSystem();
+// ---- Aliviar CPU ----
+let reliefOn = false;
+const fmtThreads = (t) => `${String(t).replace(".", ",")} ${t === 1 ? "thread" : "threads"}`;
+function renderRelief(r) {
+  reliefOn = r.active;
+  const b = $("relief-btn");
+  b.textContent = reliefOn ? "▶ Liberar CPU" : "🧊 Aliviar CPU";
+  b.classList.toggle("on", reliefOn);
+  b.title = reliefOn ? "Tira o teto de CPU e volta o perfil de energia anterior."
+    : "Põe os processos pesados num grupo com teto de metade da CPU e liga o modo economia. Nada é encerrado.";
+  const names = (r.names || []).map(([n, c]) => c > 1 ? `${n} ×${c}` : n).join(", ");
+  $("relief-info").textContent = reliefOn
+    ? `Teto de ${fmtThreads(r.threads)} em ${r.count} ${r.count === 1 ? "processo" : "processos"}${names ? ": " + names : ""}`
+    : "";
+  $("relief-info").title = $("relief-info").textContent;
+}
+async function pollRelief() {
+  try { renderRelief(await (await fetch("/api/cpu-relief")).json()); } catch { /* servidor fora */ }
+}
+$("relief-btn").addEventListener("click", async () => {
+  const b = $("relief-btn");
+  b.disabled = true; b.classList.add("is-busy");
+  try {
+    const r = await (await fetch("/api/cpu-relief", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Painel": "1" },
+      body: JSON.stringify({ on: !reliefOn }),
+    })).json();
+    if (r.error) throw new Error(r.error);
+    if (r.msg) toast(r.msg);
+    else if (r.active) toast(`CPU aliviada: ${r.count} processos com teto de ${fmtThreads(r.threads)}${r.profile === "power-saver" ? " e modo economia ligado" : ""}. A temperatura cai em alguns segundos.`);
+    else toast("Teto de CPU removido. Os processos voltam à velocidade normal.");
+    renderRelief(r.moved === 0 ? { active: reliefOn } : r);
+  } catch (e) {
+    toast("Não consegui aliviar a CPU: " + e.message);
+  } finally {
+    b.disabled = false; b.classList.remove("is-busy");
+  }
+});
+pollRelief();
+setInterval(pollRelief, 5000);
+setInterval(pollSystem, 2000);
+loadDisks();
+setInterval(loadDisks, 30000);
+loadProcesses();
+setInterval(loadProcesses, 5000);
+loadFolder(null);
+loadApps();
+loadDocker();
+setInterval(loadDocker, 15000);
+</script>
+</body>
+</html>

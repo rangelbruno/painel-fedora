@@ -1,0 +1,15 @@
+# Gerados ao rodar
+servidor.log
+*.log
+__pycache__/
+*.pyc
+
+# Ferramentas locais
+.impeccable/
+.claude/settings.local.json
+
+# Dados e ambiente locais
+.env*
+!.env.example
+dados.txt
+DADOS.txt
